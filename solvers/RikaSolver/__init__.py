@@ -11,24 +11,30 @@ def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     :param craft_history: 历史路线
     :return: 可用技能
     """
-    available_actions = set()
+    available_actions = {"模范制作", "俭约制作", "制作", "精密制作"}
     forbidden_actions = set()
     if craft.craft_round == 4:
         available_actions.add("长期俭约")
         available_actions.add("俭约")
-    if '俭约' in craft.effects or '坚信' in craft.effects: available_actions.add("坯料制作")
-    if '坚信' in craft.effects: forbidden_actions = forbidden_actions.union({"制作", "模范制作", "俭约制作", "精密制作"})
-    if '俭约' in craft.effects: forbidden_actions.add("俭约制作")
-    available_actions = available_actions.union({"制作", "模范制作", "俭约制作", "精密制作"})
-    if '模范制作' in craft_history or '俭约制作' in craft_history:
+    if "俭约" in craft.effects or "坚信" in craft.effects:
+        available_actions.add("坯料制作")
+        forbidden_actions.add("俭约制作")
+    if "坚信" in craft.effects:
         forbidden_actions = forbidden_actions.union({"制作", "模范制作", "俭约制作", "精密制作"})
+    if craft_history.count("制作"): # 根据效率进行排序
+        forbidden_actions = forbidden_actions.union({"坯料制作", "模范制作", "俭约制作"})
+    if craft_history.count("模范制作"):
         forbidden_actions.add("坯料制作")
-    if '精密制作' in craft_history:
-        forbidden_actions = forbidden_actions.union({"坯料制作", "俭约制作", "模范制作", "制作"})
-    if craft.status.name in {"高品质", "最高品质"} or '专心致志' in craft.effects:
-        if  (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process >= 4:
-            available_actions.add('集中制作')
-            forbidden_actions = forbidden_actions.union({"模范制作", "俭约制作", "坯料制作"})
+    if craft_history.count("模范制作") == 2:
+        forbidden_actions.add("俭约制作")
+    if craft_history.count("俭约制作"):
+        forbidden_actions.add("坯料制作")
+    if craft_history.count("俭约制作") == 2:
+        forbidden_actions.add("模范制作")
+    if craft_history.count("模范制作") == craft_history.count("俭约制作") == 1:
+        if craft_history[-1] == "模范制作":
+            forbidden_actions.add("俭约制作")
+        if craft_history[-1] == "俭约制作":
             forbidden_actions.add("模范制作")
             forbidden_actions.add("制作") # 暂时保留, 可能存在过度剪枝的情况
     if craft_history.count("精密制作"):
