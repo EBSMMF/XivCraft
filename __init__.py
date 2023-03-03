@@ -74,8 +74,8 @@ class CraftAction(EventBase):
     def text(self):
         return f"CraftAction;{self.skill.name}"
 
-class XivCraftX(PluginBase):
-    name = "XivCraftX"
+class XivCraft(PluginBase):
+    name = "XivCraft"
 
     def __init__(self):
         super().__init__()

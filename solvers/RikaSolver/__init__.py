@@ -4,7 +4,7 @@ from ...simulator import Craft, Manager
 default_process_round = 8
 
 #本算法根据rika算法魔改,pruning(V2) by zeroneko
-def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = None) -> set:
+def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
     """
     当前可进行的作业技能
     :param craft: 生产配方
@@ -22,8 +22,6 @@ def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = None) -> s
     available_actions = available_actions.union({"制作", "模范制作", "俭约制作", "精密制作"})
     if '模范制作' in craft_history or '俭约制作' in craft_history:
         forbidden_actions.add("坯料制作")
-    if '制作' in craft_history:
-        forbidden_actions = forbidden_actions.union({"模范制作", "俭约制作", "坯料制作"})
     if '精密制作' in craft_history:
         forbidden_actions = forbidden_actions.union({"坯料制作", "俭约制作", "模范制作", "制作"})
     if craft.status.name in {"高品质", "最高品质"} or '专心致志' in craft.effects:
@@ -40,7 +38,7 @@ def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = None) -> s
         if action not in forbidden_actions and craft.get_skill_availability(action): result_actions.add(action)
     return result_actions
 
-def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = None) -> set:
+def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
     """
     当前可进行的加工技能
     :param craft: 生产配方
@@ -100,10 +98,9 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = None) -> s
         available_actions.add("改革")
         if inner_quiet >= 2: forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工", "工匠的神技", "俭约加工", "坯料加工", "比尔格的祝福"})
     if craft.current_durability <= 35: forbidden_actions.add("加工")
-    if craft.current_durability <= 15: forbidden_actions.add("俭约加工") #[俭约-*-比尔格]**CP不足
-    if craft.current_durability <= 15: forbidden_actions.add("观察") #[俭约-*-比尔格]**CP不足
-    if craft.current_durability <= 15: forbidden_actions.add("集中加工") #[俭约-*-比尔格]**CP不足
-    if craft.current_durability <= 5: #[俭约-*-比尔格]**CP不足
+    if craft.current_durability <= 15: forbidden_actions.add("俭约加工") #耐久不足
+    if craft.current_durability <= 20: forbidden_actions = forbidden_actions.union({"观察", "加工", "集中加工", "坯料加工"}) #耐久不足
+    if craft.current_durability <= 10: #耐久不足
         forbidden_actions = forbidden_actions.union({"工匠的神技", "阔步", "改革"})
     if craft.current_cp < 56: #[-阔步-比尔格]**CP不足
         forbidden_actions.add("工匠的神技")
@@ -265,12 +262,7 @@ class RikaSolver(Solver):
 
     @staticmethod
     def suitable(craft):
-        if craft.recipe.recipe_row["RecipeLevelTable"]["ClassJobLevel"] == craft.player.level >= 90:
-            return True
-        elif craft.recipe.status_flag in {0b1110011, 0b111100011, 0b111110011} and craft.recipe.recipe_row["RecipeLevelTable"]["ClassJobLevel"] == 80:
-            return True
-        return False
-
+        return craft.recipe.recipe_row["RecipeLevelTable"]["ClassJobLevel"] == craft.player.level >= 90 and craft.recipe.status_flag == 0b1111
 
     def __init__(self, craft, logger):
         super().__init__(craft, logger)
