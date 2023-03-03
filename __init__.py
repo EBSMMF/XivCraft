@@ -192,7 +192,7 @@ class XivCraft(PluginBase):
         # process_event(CraftAction(craft, skill))
         if self.solver is not None and not craft.is_finished():
             ans = self.solver.process(craft, skill)
-            # self.logger.debug("suggested skill '%s'" % ans)
+            self.logger.debug("suggested skill '%s'" % ans)
             if ans and callback is not None:
                 self.create_mission(callback, ans, limit_sec=0.6)
 
