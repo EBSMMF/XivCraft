@@ -194,7 +194,7 @@ class XivCraft(PluginBase):
             ans = self.solver.process(craft, skill)
             self.logger.debug("suggested skill '%s'" % ans)
             if ans and callback is not None:
-                self.create_mission(callback, ans, limit_sec=0.6)
+                self.create_mission(callback, ans, limit_sec=0)
 
     def craft_next(self, chat_log, regex_result):
         if regex_result.group(1) != self.name: return

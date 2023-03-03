@@ -35,18 +35,15 @@ class Green(Status):
 
 class DeepBlue(Status):
     id = 8
-    name = "高進捗"
+    name = "大进展"
     _progress_factor = 0.5
 
 class Purple(Status):
     id = 9
-    name = "長持続"
-    banlist = ["加工","中级加工"] #紫球禁止延长的buff
+    name = "长持续"
 
     def after_round(self, craft, used_skill):
         for e in craft.effect_to_add.values():
-            if used_skill in self.banlist:
-                continue
             if e.use_rounds:
                 e.param += 2
 
