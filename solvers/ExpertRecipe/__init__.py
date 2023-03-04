@@ -27,7 +27,7 @@ def progess_skill(craft: Craft.Craft, skill: str) -> str:
     """
     temp = craft.clone().use_skill(skill) # 创建数据副本并且使用技能
     if temp.is_finished(): # 判断是否满作业
-        return '最终确认'
+        return "最终确认"
     else:
         return skill
 
@@ -152,37 +152,37 @@ class Stage1:
         process_finish = is_process_finished(craft)
 
         if craft.status == "长持续":# 紫球处理
-            if not process_finish and '崇敬' not in craft.effects: return '崇敬'
+            if not process_finish and "崇敬" not in craft.effects: return "崇敬"
             if craft.current_cp > 400:
-                if '俭约' not in craft.effects: return '俭约'
-                if '掌握' not in craft.effects: return '掌握'
+                if "俭约" not in craft.effects: return "俭约"
+                if "掌握" not in craft.effects: return "掌握"
         elif craft.status == "高品质":# 红球处理
             if craft.current_durability > 10:
-                if craft.effects['内静'].param < 4 or "改革" in craft.effects: return '集中加工'
-                elif ('崇敬' in craft.effects or is_process_finished(craft.clone().use_skill("集中制作"))) and craft.current_durability > 10: return progess_skill(craft, '集中制作') # 可以通过集中制作进入加工阶段
-            return '秘诀'
+                if craft.effects["内静"].param < 4 or "改革" in craft.effects: return "集中加工"
+                elif ("崇敬" in craft.effects or is_process_finished(craft.clone().use_skill("集中制作"))) and craft.current_durability > 10: return progess_skill(craft, "集中制作") # 可以通过集中制作进入加工阶段
+            return "秘诀"
         elif craft.status == "高效": # 绿球处理
             if craft.current_cp >= 400:
-                if '掌握' not in craft.effects: return '掌握'
+                if "掌握" not in craft.effects: return "掌握"
                 empty_dur = craft.recipe.max_durability - craft.current_durability # 消耗了多少耐久（用于判断精修一类）
-                if empty_dur >= 30: return '精修'
+                if empty_dur >= 30: return "精修"
 
-        if craft.current_durability <= craft.get_skill_durability('制作'): return '精修' # 耐久不足以使用下一个作业技能就打精修
+        if craft.current_durability <= craft.get_skill_durability("制作"): return "精修" # 耐久不足以使用下一个作业技能就打精修
         
         if craft.status == "安定": # 黄球处理
-            if '崇敬' in craft.effects and not process_finish: return progess_skill(craft, '高速制作')
-            elif craft.effects['内静'].param < 4: return '仓促'
-            return progess_skill(craft, '高速制作')
+            if "崇敬" in craft.effects and not process_finish: return progess_skill(craft, "高速制作")
+            elif craft.effects["内静"].param < 4: return "仓促"
+            return progess_skill(craft, "高速制作")
         if not process_finish:
-            if craft.status == "大进展" or '崇敬' in craft.effects:
-                process_list = {'制作', '高速制作'}
-                process_list.add('俭约制作') if "俭约" not in craft.effects else process_list.add('模范制作')
+            if craft.status == "大进展" or "崇敬" in craft.effects:
+                process_list = {"制作", "高速制作"}
+                process_list.add("俭约制作") if "俭约" not in craft.effects else process_list.add("模范制作")
                 for s in process_list:
                     if is_process_finished(craft.clone().use_skill(s)): return progess_skill(craft, s)
-                return progess_skill(craft, '高速制作')
-        if craft.effects['内静'].param < 4:
-            return "仓促" if '俭约' in craft.effects else '俭约加工'
-        else: return '崇敬'
+                return progess_skill(craft, "高速制作")
+        if craft.effects["内静"].param < 4:
+            return "仓促" if "俭约" in craft.effects else "俭约加工"
+        else: return "崇敬"
 
 class Stage2:
 
@@ -220,14 +220,14 @@ class Stage2:
         :param prev_skill: 上一个使用的技能名字
         :return: 生产技能
         """
-        if prev_skill == '设计变动':
+        if prev_skill == "设计变动":
             self.blueprint_used += 1
         if not self.need_blueprint:
             self.prev_skill = self.queue.pop(0)
-        if self.prev_skill == '比尔格的祝福': # 开始计算图纸
+        if self.prev_skill == "比尔格的祝福": # 开始计算图纸
             if craft.status == "高品质": return "比尔格的祝福"
             else:
-                if craft.get_skill_quality('比尔格的祝福') + craft.current_quality < craft.recipe.recipe_row["RequiredQuality"] and craft.get_skill_quality('比尔格的祝福') * 1.5 + craft.current_quality >= craft.recipe.recipe_row["RequiredQuality"] and self.blueprint - self.blueprint_used and self.blueprint_used < 3: return "设计变动" # 未达到最低品质要求且存在可用图纸
+                if craft.get_skill_quality("比尔格的祝福") + craft.current_quality < craft.recipe.recipe_row["RequiredQuality"] and craft.get_skill_quality("比尔格的祝福") * 1.5 + craft.current_quality >= craft.recipe.recipe_row["RequiredQuality"] and self.blueprint - self.blueprint_used and self.blueprint_used < 3: return "设计变动" # 未达到最低品质要求且存在可用图纸
                 return "比尔格的祝福"
         return self.prev_skill
 
@@ -285,12 +285,12 @@ class ExpertRecipe(Solver):
         :param used_skill: 上一个使用的技能名字
         :return: 推荐技能名称
         """
-        if self.stage < 0: return ''
-        if craft.craft_round == 1: return '闲静'
+        if self.stage < 0: return ""
+        if craft.craft_round == 1: return "闲静"
         while self.process_stages[self.stage].is_finished(craft, used_skill):
             self.stage += 1
             if self.stage >= len(self.process_stages):
                 self.stage = -1
-                return ''
+                return ""
         ans = self.process_stages[self.stage].deal(craft, used_skill)
         return ans
