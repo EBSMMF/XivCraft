@@ -211,7 +211,7 @@ class Stage2:
             if self.is_first: self.is_first = False
             routes, ans = Generate_Quality_Routes(craft)
             if ans: self.queue = ans
-        return not bool(self.queue)
+        return not bool(self.queue) and not self.is_first
 
     def deal(self, craft: Craft.Craft, prev_skill: str = None) -> str:
         """
@@ -223,6 +223,8 @@ class Stage2:
         if prev_skill == "设计变动":
             self.blueprint_used += 1
         if not self.need_blueprint:
+            self.prev_skill = self.queue.pop(0)
+        while self.prev_skill in {"制作", "模范制作", "俭约制作", "高速制作"}: # 手动筛一下技能
             self.prev_skill = self.queue.pop(0)
         if self.prev_skill == "比尔格的祝福": # 开始计算图纸
             if craft.status == "高品质": return "比尔格的祝福"
