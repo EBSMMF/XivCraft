@@ -226,6 +226,7 @@ class Stage2:#加工阶段
     def __init__(self):
         self.queue = []
         self.prev_skill = None
+        self.is_first = True
 
     def is_finished(self, craft: Craft.Craft, prev_skill: str = None) -> bool:
         """
@@ -240,7 +241,8 @@ class Stage2:#加工阶段
         elif remaining_prog >= 1.2: craft.current_cp -= 7
         elif remaining_prog > 0: pass
         craft.current_durability -= 4
-        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质"} or prev_skill != self.prev_skill:
+        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质"} or prev_skill != self.prev_skill or self.is_first:
+            if self.is_first: self.is_first = False
             routes, ans = Generate_Quality_Routes(craft)
             if ans:
                 self.queue = ans
