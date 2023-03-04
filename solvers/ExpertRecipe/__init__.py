@@ -21,12 +21,12 @@ def is_process_finished(craft: Craft.Craft) -> bool:
 def progess_skill(craft: Craft.Craft, skill: str) -> str:
     """
     对于作业类技能先模拟是否会搓爆，是的话打一个确认
-    :param craft:  生产数据
+    :param craft: 生产数据
     :param skill: 技能名
     :return: 决定使用的技能
     """
-    temp = craft.clone().use_skill(skill)  # 创建数据副本并且使用技能
-    if temp.is_finished():  # 判断是否满作业
+    temp = craft.clone().use_skill(skill) # 创建数据副本并且使用技能
+    if temp.is_finished(): # 判断是否满作业
         return '最终确认'
     else:
         return skill
@@ -122,12 +122,12 @@ def Generate_Quality_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
     queue = [(craft, [])] # 待办事项
     top_route = (craft, []) # 目前最佳项 第一个坑是数据，第二个是技能历史
     while queue:
-        t_craft, t_history = queue.pop(0)  # 获取一个待办事项
+        t_craft, t_history = queue.pop(0) # 获取一个待办事项
         for action in Get_Quality_AllowSkills(t_craft, t_history):
             tt_craft = t_craft.clone()
             tt_craft.use_skill(action)
             tt_craft.status = Manager.mStatus.DEFAULT_STATUS() # 重设球色
-            new_data = (tt_craft, t_history + [action])  # 模拟使用技能然后组成一个新的事项
+            new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
             if top_route[0].current_quality < tt_craft.current_quality: top_route = new_data # 得到当前路径品质最高的解
             elif top_route[0].current_quality == tt_craft.current_quality:
                 if top_route[0].craft_round > tt_craft.craft_round: top_route = new_data # 如果品质相同比较轮次
@@ -164,7 +164,7 @@ class Stage1:
         elif craft.status == "高效": # 绿球处理
             if craft.current_cp >= 400:
                 if '掌握' not in craft.effects: return '掌握'
-                empty_dur = craft.recipe.max_durability - craft.current_durability  # 消耗了多少耐久（用于判断精修一类）
+                empty_dur = craft.recipe.max_durability - craft.current_durability # 消耗了多少耐久（用于判断精修一类）
                 if empty_dur >= 30: return '精修'
 
         if craft.current_durability <= craft.get_skill_durability('制作'): return '精修' # 耐久不足以使用下一个作业技能就打精修
@@ -175,7 +175,7 @@ class Stage1:
             return progess_skill(craft, '高速制作')
         if not process_finish:
             if craft.status == "大进展" or '崇敬' in craft.effects:
-                process_list =  {'制作', '高速制作'}
+                process_list = {'制作', '高速制作'}
                 process_list.add('俭约制作') if "俭约" not in craft.effects else process_list.add('模范制作')
                 for s in process_list:
                     if is_process_finished(craft.clone().use_skill(s)): return progess_skill(craft, s)
@@ -192,7 +192,7 @@ class Stage2:
         self.prev_skill = None
         self.need_blueprint = False_
         self.blueprint = sum(i.count for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(28724, "backpack")) # 获取背包图纸数量
-        self.blueprint_used = 0  # 目前使用过的图纸数量
+        self.blueprint_used = 0 # 目前使用过的图纸数量
 
     def is_finished(self, craft: Craft.Craft, prev_skill: str = None) -> bool:
         """
@@ -225,7 +225,10 @@ class Stage2:
         if not self.need_blueprint:
             self.prev_skill = self.queue.pop(0)
         if self.prev_skill == '比尔格的祝福': # 开始计算图纸
-            return "设计变动" if craft.status != "高品质" and self.blueprint - self.blueprint_used and self.blueprint_used < 3 and craft.get_skill_quality('比尔格的祝福') * 1.5 + craft.current_quality >= craft.recipe.recipe_row["RequiredQuality"] else "比尔格的祝福"
+            if craft.status == "高品质": return "比尔格的祝福"
+            else:
+                if craft.get_skill_quality('比尔格的祝福') + craft.current_quality < craft.recipe.recipe_row["RequiredQuality"] and craft.get_skill_quality('比尔格的祝福') * 1.5 + craft.current_quality >= craft.recipe.recipe_row["RequiredQuality"] and self.blueprint - self.blueprint_used and self.blueprint_used < 3: return "设计变动" # 未达到最低品质要求且存在可用图纸
+                return "比尔格的祝福"
         return self.prev_skill
 
 class Stage3:
@@ -274,7 +277,6 @@ class ExpertRecipe(Solver):
         self.stage = 0
         self.choose_stages = [Stage1, Stage2, Stage3]
         self.process_stages = [s() for s in self.choose_stages]
-        self.can_hq = craft.recipe.recipe_row["CanHq"]
 
     def process(self, craft, used_skill = None) -> str:
         """
