@@ -211,7 +211,6 @@ class Stage2:
             if self.is_first: self.is_first = False
             routes, ans = Generate_Quality_Routes(craft)
             if ans: self.queue = ans
-
         return not bool(self.queue)
 
     def deal(self, craft: Craft.Craft, prev_skill: str = None) -> str:
@@ -226,10 +225,7 @@ class Stage2:
         if not self.need_blueprint:
             self.prev_skill = self.queue.pop(0)
         if self.prev_skill == '比尔格的祝福': # 开始计算图纸
-            if craft.status != "高品质" and self.blueprint - self.blueprint_used and self.blueprint_used < 3 and craft.get_skill_quality('比尔格的祝福') * 1.5 + craft.current_quality >= craft.recipe.recipe_row["RequiredQuality"]:
-                return "设计变动"
-            else:
-                return "比尔格的祝福"
+            return "设计变动" if craft.status != "高品质" and self.blueprint - self.blueprint_used and self.blueprint_used < 3 and craft.get_skill_quality('比尔格的祝福') * 1.5 + craft.current_quality >= craft.recipe.recipe_row["RequiredQuality"] else "比尔格的祝福"
         return self.prev_skill
 
 class Stage3:
