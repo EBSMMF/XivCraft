@@ -10,7 +10,7 @@ from FFxivPythonTrigger.saint_coinach import realm
 from FFxivPythonTrigger.memory import read_int, read_memory
 from FFxivPythonTrigger.memory.struct_factory import OffsetStruct, PointerStruct
 from .simulator import Models, Manager, Craft
-from .solvers import RikaSolver, JustDoIt, MacroCraft2
+from .solvers import RikaSolver, JustDoIt, MacroCraft2, ExpertRecipe
 
 if TYPE_CHECKING:
     from XivMemory.hook.chat_log import ChatLogEvent
@@ -19,6 +19,7 @@ registered_solvers = [
     JustDoIt.JustDoIt,
     MacroCraft2.MacroCraft,
     RikaSolver.RikaSolver,
+    ExpertRecipe.ExpertRecipe,
 ]
 
 recipe_sheet = realm.game_data.get_sheet('Recipe')
@@ -29,13 +30,13 @@ craft_start_sig = "40 53 48 83 EC ? 48 8B D9 C6 81 ? ? ? ? ? E8 ? ? ? ? 48 8D 4B
 craft_status_sig = "8B 05 * * * * BE ? ? ? ? 89 44 24 ?"
 base_quality_ptr_sig = "48 8B 05 * * * * 33 C9 84 D2 48 89 5C 24"
 
-
+CraftStatus_Offset = 0 #patch6.28cn
 CraftStatus = OffsetStruct({
-    'round': (c_uint, 0x18),
-    'current_progress': (c_uint, 0x1C),
-    'current_quality': (c_uint, 0x24),
-    'current_durability': (c_uint, 0x30),
-    'status_id': (c_ushort, 0x38)
+    'round': (c_uint, 0x18 + CraftStatus_Offset),
+    'current_progress': (c_uint, 0x1C + CraftStatus_Offset),
+    'current_quality': (c_uint, 0x24 + CraftStatus_Offset),
+    'current_durability': (c_uint, 0x30 + CraftStatus_Offset),
+    'status_id': (c_ushort, 0x38 + CraftStatus_Offset)
 })
 BaseQualityPtr = PointerStruct(c_uint, 0x450)
 
