@@ -260,6 +260,11 @@ class Stage2:#加工阶段
 
 class Stage3:
         
+    def __init__(self):
+        self.queue = []
+        self.is_first = True
+        self.prev_skill = None
+
     def is_finished(self, craft: Craft.Craft, prev_skill: str = None) -> bool:
         """
         接口，用于判断本stage是否负责完成
@@ -267,7 +272,15 @@ class Stage3:
         :param prev_skill: 上一个使用的技能名字
         :return: bool
         """
-        return False
+        if self.is_first:
+            self.is_first = False
+            if craft.status.name in {"高品质", "最高品质"} and craft.current_cp >= 18: self.queue.append("集中制作")
+            else:
+                remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
+                if remaining_prog >= 1.8: self.queue.extend(["观察", "注视制作"])
+                elif remaining_prog >= 1.2: self.queue.append("模范制作")
+                else: self.queue.append("制作")
+        return not bool(self.queue)
 
     def deal(self, craft: Craft.Craft, prev_skill: str = None) -> str:
         """
@@ -276,11 +289,8 @@ class Stage3:
         :param prev_skill: 上一个使用的技能名字
         :return: 生产技能
         """
-        if prev_skill == "观察": return "注视制作"
-        remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
-        if remaining_prog >= 1.8: return "观察"
-        elif remaining_prog >= 1.2: return "模范制作"
-        else: return "制作"
+        self.prev_skill = self.queue.pop(0)
+        return self.prev_skill
 
 class RikaSolver(Solver):
 
