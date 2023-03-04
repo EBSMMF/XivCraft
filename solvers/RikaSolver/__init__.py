@@ -236,6 +236,7 @@ class Stage2:#加工阶段
         :return: bool
         """
         if craft.current_quality >= craft.recipe.max_quality: return True
+        if prev_skill == "比尔格的祝福": return True
         remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
         if remaining_prog >= 1.8: craft.current_cp -= 12
         elif remaining_prog >= 1.2: craft.current_cp -= 7
