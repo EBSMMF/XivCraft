@@ -16,7 +16,7 @@ def is_process_finished(craft: Craft.Craft) -> bool:
     elif remaining_prog >= 1.8: craft.current_cp -= 12
     elif remaining_prog >= 1.2: craft.current_cp -= 7
     elif remaining_prog > 0: pass
-    return True
+    return remaining_prog
 
 def progess_skill(craft: Craft.Craft, skill: str) -> str:
     """
@@ -44,7 +44,8 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福"): return ({"比尔格的祝福"}) # 第一种提前收尾
     if "改革" in craft.effects:
         forbidden_actions.add("改革")
-        forbidden_actions.add("掌握")
+        if craft.current_durability >= 30 or craft.current_cp <= 350: # 一个推测线,可变更
+            forbidden_actions.add("掌握")
         if craft.effects["改革"].param % 3: forbidden_actions.add("加工") # [改革-加工-*-加工-加工]**禁用格式
         if craft.effects["改革"].param % 3 == 1: forbidden_actions.add("阔步") # [改革-阔步-X-X-阔步]**禁用格式 # 暂时保留, 可能存在过度剪枝的情况
         if craft.effects["改革"].param >= 3:
@@ -188,7 +189,6 @@ class Stage2:
 
     def __init__(self) -> None:
         self.queue = []
-        self.is_first = True
         self.prev_skill = None
         self.need_blueprint = False_
         self.blueprint = sum(i.count for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(28724, "backpack")) # 获取背包图纸数量
@@ -207,11 +207,10 @@ class Stage2:
         elif remaining_prog >= 1.2: craft.current_cp -= 7
         elif remaining_prog > 0: pass
         craft.current_durability -= 4
-        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质", "结实", "高效", "长持续"} or prev_skill != self.prev_skill or self.is_first:
-            if self.is_first: self.is_first = False
+        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质", "结实", "高效", "长持续"} or prev_skill != self.prev_skill:
             routes, ans = Generate_Quality_Routes(craft)
             if ans: self.queue = ans
-        return not bool(self.queue) and not self.is_first
+        return not bool(self.queue)
 
     def deal(self, craft: Craft.Craft, prev_skill: str = None) -> str:
         """
@@ -223,8 +222,6 @@ class Stage2:
         if prev_skill == "设计变动":
             self.blueprint_used += 1
         if not self.need_blueprint:
-            self.prev_skill = self.queue.pop(0)
-        while self.prev_skill in {"制作", "模范制作", "俭约制作", "高速制作"}: # 手动筛一下技能
             self.prev_skill = self.queue.pop(0)
         if self.prev_skill == "比尔格的祝福": # 开始计算图纸
             if craft.status == "高品质": return "比尔格的祝福"
