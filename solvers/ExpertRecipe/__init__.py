@@ -44,8 +44,9 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福"): return ({"比尔格的祝福"}) # 第一种提前收尾
     if "改革" in craft.effects:
         forbidden_actions.add("改革")
-        if craft.current_durability >= 30 or craft.current_cp <= 350: # 一个推测线,可变更
+        if craft.current_durability >= 30 or craft.current_cp <= 300: # 一个推测线,可变更
             forbidden_actions.add("掌握")
+            forbidden_actions.add("精修")
         if craft.effects["改革"].param % 3: forbidden_actions.add("加工") # [改革-加工-*-加工-加工]**禁用格式
         if craft.effects["改革"].param % 3 == 1: forbidden_actions.add("阔步") # [改革-阔步-X-X-阔步]**禁用格式 # 暂时保留, 可能存在过度剪枝的情况
         if craft.effects["改革"].param >= 3:
@@ -65,6 +66,7 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     if "掌握" in craft.effects:
         if craft.effects["掌握"].param < 3 and inner_quiet < 2: forbidden_actions.add("加工")
     elif "加工" not in craft.effects and "中级加工" not in craft.effects: available_actions.add("掌握")
+    if craft.recipe.max_durability - craft.current_durability >= 40 and craft.current_cp >= 170: available_actions.add("精修")
     if "观察" in craft.effects: return ({"注视加工"})
     if "俭约" in craft.effects:
         available_actions.add("坯料加工")
@@ -202,7 +204,6 @@ class Stage2:
         :return: bool
         """
         if craft.current_quality >= craft.recipe.max_quality: return True
-        if prev_skill == "比尔格的祝福": return True
         remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
         if remaining_prog >= 1.8: craft.current_cp -= 12
         elif remaining_prog >= 1.2: craft.current_cp -= 7
