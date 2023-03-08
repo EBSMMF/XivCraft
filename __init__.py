@@ -14,6 +14,7 @@ from .solvers import RikaSolver, JustDoIt, MacroCraft2, ExpertRecipe
 
 if TYPE_CHECKING:
     from XivMemory.hook.chat_log import ChatLogEvent
+    # from XivNetwork.message_processors.zone_server.craft_status import ServerCraftStatusEvent 一个网络包
 
 registered_solvers = [
     JustDoIt.JustDoIt,
@@ -30,13 +31,13 @@ craft_start_sig = "40 53 48 83 EC ? 48 8B D9 C6 81 ? ? ? ? ? E8 ? ? ? ? 48 8D 4B
 craft_status_sig = "8B 05 * * * * BE ? ? ? ? 89 44 24 ?"
 base_quality_ptr_sig = "48 8B 05 * * * * 33 C9 84 D2 48 89 5C 24"
 
-CraftStatus_Offset = 0 #patch6.28cn
+CraftStatus_Offset = 0x18 #patch6.28cn
 CraftStatus = OffsetStruct({
-    'round': (c_uint, 0x18 + CraftStatus_Offset),
-    'current_progress': (c_uint, 0x1C + CraftStatus_Offset),
-    'current_quality': (c_uint, 0x24 + CraftStatus_Offset),
-    'current_durability': (c_uint, 0x30 + CraftStatus_Offset),
-    'status_id': (c_ushort, 0x38 + CraftStatus_Offset)
+    'round': (c_uint, 0x0 + CraftStatus_Offset),
+    'current_progress': (c_uint, 0x4 + CraftStatus_Offset),
+    'current_quality': (c_uint, 0xC + CraftStatus_Offset),
+    'current_durability': (c_uint, 0x18 + CraftStatus_Offset),
+    'status_id': (c_ushort, 0x20 + CraftStatus_Offset)
 })
 BaseQualityPtr = PointerStruct(c_uint, 0x450)
 
@@ -102,9 +103,8 @@ class XivCraft(PluginBase):
                 self.chat_log_processor.register(2114, "^(.+)开始练习制作\ue0bb(.+)。$", self.craft_start)
                 self.chat_log_processor.register(2114, "^(.+)开始制作“\ue0bb(.+)”(×\d+)?。$", self.craft_start)
 
-                self.chat_log_processor.register(2091, "^(.+)发动了“(.+)”(。)$", self.craft_next)
-                self.chat_log_processor.register(2114, "^(.+)发动“(.+)”  \ue06f (成功|失败)$", self.craft_next)
-                # self.register_event('network/recv_craft_status', self.craft_next_network, limit_sec=0)
+                # self.chat_log_processor.register(2091, "^(.+)发动了“(.+)”(。)$", self.craft_next)
+                # self.chat_log_processor.register(2114, "^(.+)发动“(.+)”  \ue06f (成功|失败)$", self.craft_next)
 
                 self.chat_log_processor.register(2114, "^(.+)练习制作\ue0bb(.+)成功了！$", self.craft_end)
                 self.chat_log_processor.register(2114, "^(.+)练习制作\ue0bb(.+)失败了……$", self.craft_end)
@@ -206,17 +206,32 @@ class XivCraft(PluginBase):
         sleep(0.5)
         self._craft_next(self.get_current_craft(), skill)
 
-    def craft_next_network(self, event):
+    @event("network/zone/server/unk/634") # @event("network/zone/server/craft_status")
+    def craft_next_network(self, evt: 'ServerCraftStatusEvent'): # 一个临时的网络包
+        struct = OffsetStruct({
+            'actor_id': (c_uint, 0),
+            'prev_action_id': (c_uint, 0x2c),
+            'round': (c_uint, 0x34),
+            'current_progress': (c_int, 0x38),
+            'add_progress': (c_int, 0x3c),
+            'current_quality': (c_int, 0x40),
+            'add_quality': (c_int, 0x44),
+            'current_durability': (c_int, 0x4c),
+            'add_durability': (c_int, 0x50),
+            'status_id': (c_ushort, 0x54),
+            'prev_action_flag': (c_ushort, 0x5c),
+        }, 160)
+        event_message = struct.from_buffer(evt.raw_message).get_data(True)
         try:
-            skill = Manager.skills[get_action_name_by_id(event.raw_msg.prev_action_id) + ('' if event.raw_msg.prev_action_success else ':fail')]()
+            skill = Manager.skills[get_action_name_by_id(event_message["prev_action_id"]) + ('' if event_message["prev_action_flag"] == 18 else ':fail')]()
         except KeyError:
             return
         sleep(0.1)
         self._craft_next(self.get_current_craft(
-            current_round=event.round,
-            current_progress=event.current_progress,
-            current_quality=event.current_quality,
-            current_durability=event.current_durability,
+            current_round = event_message["round"],
+            current_progress = event_message["current_progress"],
+            current_quality = event_message["current_quality"],
+            current_durability = event_message["current_durability"],
         ), skill)
 
     def craft_end(self, chat_log, regex_result):
