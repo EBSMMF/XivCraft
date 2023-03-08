@@ -66,7 +66,7 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     if "掌握" in craft.effects:
         if craft.effects["掌握"].param < 3 and inner_quiet < 2: forbidden_actions.add("加工")
     elif "加工" not in craft.effects and "中级加工" not in craft.effects: available_actions.add("掌握")
-    if craft.recipe.max_durability - craft.current_durability >= 40 and craft.current_cp >= 170: available_actions.add("精修")
+    if craft.current_durability <= 15 and craft.current_cp >= 170: available_actions.add("精修")
     if "观察" in craft.effects: return ({"注视加工"})
     if "俭约" in craft.effects:
         available_actions.add("坯料加工")
@@ -192,8 +192,11 @@ class Stage2:
     def __init__(self) -> None:
         self.queue = []
         self.prev_skill = None
-        self.need_blueprint = False_
-        self.blueprint = sum(i.count for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(28724, "backpack")) # 获取背包图纸数量
+        self.blueprint = 0
+        for equip_id in {10337, 10338, 10339, 10340, 10341, 10342, 10343, 10344}: # 判断专家水晶
+            for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(equip_id, "equipment"):
+                if i: 
+                    self.blueprint = sum(i.count for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(28724, "backpack")) # 获取背包图纸数量
         self.blueprint_used = 0 # 目前使用过的图纸数量
 
     def is_finished(self, craft: Craft.Craft, prev_skill: str = None) -> bool:
@@ -209,7 +212,7 @@ class Stage2:
         elif remaining_prog >= 1.2: craft.current_cp -= 7
         elif remaining_prog > 0: pass
         craft.current_durability -= 4
-        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质", "结实", "高效", "长持续"} or prev_skill != self.prev_skill:
+        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质", "结实", "高效", "长持续"} or prev_skill != self.prev_skill and prev_skill != "设计变动":
             routes, ans = Generate_Quality_Routes(craft)
             if ans: self.queue = ans
         return not bool(self.queue)
@@ -223,13 +226,10 @@ class Stage2:
         """
         if prev_skill == "设计变动":
             self.blueprint_used += 1
-        if not self.need_blueprint:
-            self.prev_skill = self.queue.pop(0)
-        if self.prev_skill == "比尔格的祝福": # 开始计算图纸
-            if craft.status == "高品质": return "比尔格的祝福"
-            else:
-                if craft.get_skill_quality("比尔格的祝福") + craft.current_quality < craft.recipe.recipe_row["RequiredQuality"] and craft.get_skill_quality("比尔格的祝福") * 1.5 + craft.current_quality >= craft.recipe.recipe_row["RequiredQuality"] and self.blueprint - self.blueprint_used and self.blueprint_used < 3: return "设计变动" # 未达到最低品质要求且存在可用图纸
-                return "比尔格的祝福"
+        self.prev_skill = self.queue.pop(0)
+        if self.prev_skill == "比尔格的祝福": # 判断是否需要使用图纸
+            if craft.status != "高品质" and self.blueprint - self.blueprint_used and self.blueprint_used < 3 and craft.get_skill_quality("比尔格的祝福") + craft.current_quality < craft.recipe.recipe_row["RequiredQuality"] and craft.get_skill_quality("比尔格的祝福") * 1.5 + craft.current_quality >= craft.recipe.recipe_row["RequiredQuality"]: # 存在可用图纸且未达到最低品质线
+                return "设计变动"
         return self.prev_skill
 
 class Stage3:
@@ -246,15 +246,17 @@ class Stage3:
         :param prev_skill: 上一个使用的技能名字
         :return: bool
         """
-        if self.is_first:
-            self.is_first = False
-            if craft.status.name in {"高品质", "最高品质"} and craft.current_cp >= 18:
-                self.queue.append("集中制作")
-            else:
-                remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
-                if remaining_prog >= 1.8: self.queue.extend(["观察", "注视制作"])
-                elif remaining_prog >= 1.2: self.queue.append("模范制作")
-                else: self.queue.append("制作")
+        remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
+        if craft.status.name in {"高品质", "最高品质"}:#特殊收尾
+            if remaining_prog <= 1 and craft.current_cp >= 12: self.queue.append("秘诀")
+            elif craft.current_cp >= 18: self.queue.append("集中制作")
+        else:
+            if self.is_first:
+                self.is_first = False
+                if remaining_prog <= 1 and craft.current_cp >= 32 and craft.current_quality < craft.recipe.recipe_row["RequiredQuality"]: self.queue.append("精密制作")
+                elif remaining_prog <= 1.2: self.queue.append("制作")
+                elif remaining_prog <= 1.8: self.queue.append("模范制作")
+                else: self.queue.extend(["观察", "注视制作"])
         return not bool(self.queue)
 
     def deal(self, craft: Craft.Craft, prev_skill: str = None) -> str:

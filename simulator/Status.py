@@ -1,5 +1,7 @@
 from .Models import Status
 
+from FFxivPythonTrigger import plugins
+
 class White(Status):
     id = 1
     name = "通常"
@@ -8,6 +10,9 @@ class Red(Status):
     id = 2
     name = "高品质"
     _quality_factor = 0.5
+    for equip_id in {38737, 38738, 38739, 38740, 38741, 38742, 38743, 38744}: # patch 6.35 Adaptive splendorous tool add 0.25 quality_factor
+        for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(equip_id, "equipment"):
+            if i: _quality_factor += 0.25
 
 class Rainbow(Status):
     id = 3
