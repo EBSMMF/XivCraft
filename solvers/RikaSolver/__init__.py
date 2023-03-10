@@ -134,6 +134,13 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
         if action not in forbidden_actions and craft.get_skill_availability(action): result_actions.add(action)
     return result_actions
 
+def process_usedtime(process: list=[]) -> int:
+    used_time = 0
+    while process:
+        if process.pop(0) in ["俭约", "长期俭约", "崇敬", "阔步", "改革", "最终确认", "掌握"]: used_time += 2
+        else: used_time += 3
+    return used_time
+
 def Generate_Process_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
     """
     根据进度计算结果
@@ -162,7 +169,7 @@ def Generate_Process_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
                 new_data = (ttt_craft, t_history + [action] + ttt_history) # 模拟使用技能然后组成一个新的事项
                 if routes[0].current_quality < ttt_craft.current_quality: routes = new_data # 得到总路径品质最高的解
                 elif routes[0].current_quality == ttt_craft.current_quality:
-                    if routes[0].craft_round > ttt_craft.craft_round: routes = new_data # 如果品质相同比较轮次
+                    if process_usedtime(routes[1]) > process_usedtime(new_data[1]): routes = new_data # 如果品质相同比较轮次
                     elif routes[0].craft_round == ttt_craft.craft_round and routes[0].current_cp < ttt_craft.current_cp: routes = new_data # 如果轮次相同保留高CP
                 continue
             if t_craft.craft_round < default_process_round: queue.insert(0, new_data) # 制作轮次大于默认制作轮次
@@ -186,8 +193,8 @@ def Generate_Quality_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
                 new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
                 if top_route[0].current_quality < tt_craft.current_quality: top_route = new_data # 得到当前路径品质最高的解
                 elif top_route[0].current_quality == tt_craft.current_quality:
-                    if top_route[0].craft_round > tt_craft.craft_round: top_route = new_data # 如果品质相同比较轮次
-                    elif top_route[0].craft_round == tt_craft.craft_round and top_route[0].current_cp <= tt_craft.current_cp: top_route = new_data # 如果轮次相同保留高CP
+                    if process_usedtime(top_route[1]) > process_usedtime(new_data[1]): top_route = new_data # 如果品质相同比较轮次
+                    elif process_usedtime(top_route[1]) == process_usedtime(new_data[1]) and top_route[0].current_cp <= tt_craft.current_cp: top_route = new_data # 如果轮次相同保留高CP
                 if action == "比尔格的祝福": continue # 比尔格收尾了
                 if tt_craft.current_quality == craft.recipe.max_quality: continue #品质满了
                 queue.insert(0, new_data) # 将未进行完的事项从重新添加到队列

@@ -210,9 +210,8 @@ class Stage2:
         remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
         if remaining_prog >= 1.8: craft.current_cp -= 12
         elif remaining_prog >= 1.2: craft.current_cp -= 7
-        elif remaining_prog > 0: pass
         craft.current_durability -= 4
-        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质", "结实", "高效", "长持续"} or prev_skill != self.prev_skill and prev_skill != "设计变动":
+        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质", "结实", "高效", "长持续"} or prev_skill != self.prev_skill:
             routes, ans = Generate_Quality_Routes(craft)
             if ans: self.queue = ans
         return not bool(self.queue)
@@ -224,9 +223,8 @@ class Stage2:
         :param prev_skill: 上一个使用的技能名字
         :return: 生产技能
         """
-        if prev_skill == "设计变动":
-            self.blueprint_used += 1
         self.prev_skill = self.queue.pop(0)
+        if prev_skill == "设计变动": self.blueprint_used += 1
         if self.prev_skill == "比尔格的祝福": # 判断是否需要使用图纸
             if craft.status != "高品质" and self.blueprint - self.blueprint_used and self.blueprint_used < 3 and craft.get_skill_quality("比尔格的祝福") + craft.current_quality < craft.recipe.recipe_row["RequiredQuality"] and craft.get_skill_quality("比尔格的祝福") * 1.5 + craft.current_quality >= craft.recipe.recipe_row["RequiredQuality"]: # 存在可用图纸且未达到最低品质线
                 return "设计变动"
