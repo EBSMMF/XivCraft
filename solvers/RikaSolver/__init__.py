@@ -136,8 +136,8 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
 
 def process_usedtime(process: list=[]) -> int:
     used_time = 0
-    while process:
-        if process.pop(0) in ["俭约", "长期俭约", "崇敬", "阔步", "改革", "最终确认", "掌握"]: used_time += 2
+    for temp_skill in process:
+        if temp_skill in ["俭约", "长期俭约", "崇敬", "阔步", "改革", "最终确认", "掌握"]: used_time += 2
         else: used_time += 3
     return used_time
 
