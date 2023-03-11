@@ -10,7 +10,7 @@ from FFxivPythonTrigger.saint_coinach import realm
 from FFxivPythonTrigger.memory import read_int, read_memory
 from FFxivPythonTrigger.memory.struct_factory import OffsetStruct, PointerStruct
 from .simulator import Models, Manager, Craft
-from .solvers import RikaSolver, JustDoIt, MacroCraft2, ExpertRecipe
+from .solvers import RikaSolver, JustDoIt, MacroCraft2, ExpertRecipe, NormalRecipe
 
 if TYPE_CHECKING:
     from XivMemory.hook.chat_log import ChatLogEvent
@@ -21,6 +21,7 @@ registered_solvers = [
     MacroCraft2.MacroCraft,
     RikaSolver.RikaSolver,
     ExpertRecipe.ExpertRecipe,
+    NormalRecipe.NormalRecipe,
 ]
 
 recipe_sheet = realm.game_data.get_sheet('Recipe')

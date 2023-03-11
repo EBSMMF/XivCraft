@@ -304,7 +304,7 @@ class RikaSolver(Solver):
 
     @staticmethod
     def suitable(craft):
-        return craft.recipe.recipe_row["RecipeLevelTable"]["ClassJobLevel"] == craft.player.level >= 90 and craft.recipe.status_flag == 0b1111
+        return craft.recipe.recipe_row["RecipeLevelTable"]["ClassJobLevel"] == 90 and bool(craft.recipe.recipe_row["RecipeLevelTable"]["Stars"]) and craft.recipe.status_flag == 0b1111
 
     def __init__(self, craft, logger):
         super().__init__(craft, logger)

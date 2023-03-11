@@ -9,10 +9,7 @@ class Recipe(object):
         self.recipe_row = recipe_row
         self.name = recipe_row["Item{Result}"]["Name"]  #制作物品名称
         rlv_row = recipe_row["RecipeLevelTable"]
-        try:
-            self.rlv = rlv_row.key
-        except :
-            self.rlv = rlv_row["key"] #测试用
+        self.rlv = rlv_row.key
         self.status_flag = rlv_row["ConditionsFlag"]
         self.suggest_craft = rlv_row["SuggestedCraftsmanship"]  # 推荐作业精度
         self.suggest_control = rlv_row["SuggestedControl"]      # 推荐加工精度

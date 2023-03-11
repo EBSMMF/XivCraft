@@ -1,9 +1,5 @@
-from calendar import c
-
-from numpy import False_
-from .. import Solver
-
 from FFxivPythonTrigger import plugins
+from .. import Solver
 from ...simulator import Craft, Manager
 
 def is_process_finished(craft: Craft.Craft) -> bool:
