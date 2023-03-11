@@ -17,7 +17,9 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
         forbidden_actions = forbidden_actions.union({"制作", "加工", "俭约", "长期俭约", "掌握"})
     if craft.current_quality < craft.recipe.max_quality: # 加工未完成
         if "比尔格的祝福" in craft_history: return set()
-        if craft.status.name in {"高品质", "最高品质"}: available_actions.add("集中加工")
+        if craft.status.name in {"高品质", "最高品质"}:
+            available_actions.add("集中加工")
+            forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工"})
         if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福"): return ({"比尔格的祝福"}) # 第一种提前收尾
         available_actions = available_actions.union({"加工", "俭约加工", "坯料加工"})#, "精密制作"
         inner_quiet = 0 if "内静" not in craft.effects else craft.effects["内静"].param
@@ -54,7 +56,9 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
         if now_dur <= 15: forbidden_actions = forbidden_actions.union({"工匠的神技", "阔步", "改革"}) # 耐久不足
     elif craft.current_quality == craft.recipe.max_quality or "坚信" in craft.effects:
         available_actions = available_actions.union({"制作", "俭约制作", "模范制作", "坯料制作", "崇敬"})
-        if craft.status.name in {"高品质", "最高品质"}: available_actions.add("集中制作")
+        if craft.status.name in {"高品质", "最高品质"}:
+            available_actions.add("集中制作")
+            forbidden_actions = forbidden_actions.union({"坯料制作", "模范制作", "制作"})
         forbidden_actions.add("掌握")
         forbidden_actions.add("长期俭约")
         if "崇敬" in craft.effects:
