@@ -1,95 +1,38 @@
 # XivCraft
 
 本插件基于FPT2中XivCraft进行重建
-使用本插件默认您为满级角色
+
+目前插件内部自带版本为***CN-patch6.25***
+
+使用本插件默认您为***满级角色,且完成相关职业任务***
+
+若模块存在问题,可在*DC频道中提出或提交Issues*
 
 ## JsutDoit 
-适用于普通配方
 
+可用*工匠的神速技巧*的所有配方
 
-## CutsceneSkipper
+## MacroCraft2
 
-动画城跳动画
+用宏进行搓的配方(目前*NormalRecipe*模块替代)
 
-@cutscene
+需要手动改添加宏文件
 
-## PosLocker
+## NoemalRecipe
 
-位置锁定（防击退）
+*81-90*级的所有非星级配方
 
-@posL
+本模块默认使用,若无法100%HQ完成配方可能存在某些异常
 
-## SkillAniUnlocker
+## RikaSolver
 
-解除动画锁（十插）
+*90*级的星级配方
 
-@sALock
+手法源自[Rika生产算法](https://github.com/RikaKagurasaka/xiv_craft_solver),并进行二次修改
 
-## Slider
+## ExpertRecipe
 
-滑步
+*高难度配方*
 
-@slide
+因高难度配方存在随机性,无法保证完成
 
-## SpeedHack
-
-加速
-
-@speedH [get/set] [args]
-
-## SuperJump
-
-超级跳
-
-@sjump [function] [args]
-
-function
-
-```
-    [get]:      get current jump value
-    [set]:      set current jump value
-                format: /e @sjump set [value(float) / "default"]
-```
-
-## Teleporter
-
-瞬移
-
-@tp [function] [args]
-
-function
-
-```
-    [get]:          get current coordinates
-  
-    [set]:          set current coordinates
-                    format: /e @tp set [x:float] [y:float] [z:float]
-  
-    [list]:         list saved coordinates in current zone
-  
-    [save]:         save coordinates with a name
-  
-                    format: /e @tp save [name:str]
-    [drop]:         drop a saved coordinates
-  
-                    format: /e @tp drop [name:str]
-  
-    [goto]:         goto a saved coordinates with 15 meters limit
-                    format: /e @tp goto [name:str]
-  
-    [force-goto]:   goto a saved coordinates with no distance limit
-                    format: /e @tp force-goto [name:str]
-
-    relative coordinates teleport:
-        format: /e @tp [direction] [distance:float]
-        direction:  u/up,
-                    d/down,
-                    f/front,
-                    l/left,
-                    r/right,
-                    b/back,
-                    n/north,
-                    e/east,
-                    w/west,
-                    s/south
-```
