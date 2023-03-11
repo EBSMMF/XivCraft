@@ -3,13 +3,12 @@ from ...simulator import Craft, Manager
 
 default_process_round = 8
 
-#本算法根据rika算法魔改,pruning(V2) by zeroneko
 def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
     """
-    当前可进行的作业技能
+    得到当前可使用的作业技能
     :param craft: 生产配方
-    :param craft_history: 历史路线
-    :return: 可用技能
+    :param craft_history: 预计技能列表
+    :return: 可用作业技能
     """
     available_actions = {"模范制作", "俭约制作", "制作", "精密制作"}
     forbidden_actions = set()
@@ -55,10 +54,10 @@ def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
 
 def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
     """
-    当前可进行的加工技能
+    得到当前可进行的加工技能
     :param craft: 生产配方
-    :param craft_history: 历史路线
-    :return: 可用技能
+    :param craft_history: 预计技能列表
+    :return: 可用加工技能
     """
     available_actions = {"加工", "俭约加工", "坯料加工"}
     forbidden_actions = set()
@@ -111,7 +110,7 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
         available_actions.add("集中加工")
         available_actions.add("秘诀")
         forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工"})
-    if "工匠的神技" in craft_history: forbidden_actions.add("俭约加工")
+    if craft_history.count("工匠的神技"): forbidden_actions.add("俭约加工")
     manipulation = craft.effects["掌握"].param if "掌握" in craft.effects else 0
     now_dur = craft.current_durability + 5 * manipulation
     if now_dur <= 40: forbidden_actions.add("加工") # 耐久不足
@@ -134,7 +133,12 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
         if action not in forbidden_actions and craft.get_skill_availability(action): result_actions.add(action)
     return result_actions
 
-def process_usedtime(process: list=[]) -> int:
+def process_usedtime(process: list) -> int:
+    """
+    计算制作实际工次时间
+    :param process: 预计技能列表
+    :return: 实际工次时间
+    """
     used_time = 0
     for temp_skill in process:
         if temp_skill in ["俭约", "长期俭约", "崇敬", "阔步", "改革", "最终确认", "掌握"]: used_time += 2
@@ -144,8 +148,8 @@ def process_usedtime(process: list=[]) -> int:
 def Generate_Process_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
     """
     根据进度计算结果
-    :param craft(Craft.Craft): _description_
-    :return: tuple[Craft.Craft, list]: 最终预估结果, 目标路线图
+    :param craft: 生产配方
+    :return: 预计结果, 预计技能列表
     """
     queue = [(craft, [])]
     routes = (craft, [])
@@ -179,7 +183,7 @@ def Generate_Quality_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
     """
     根据品质计算结果
     :param craft: 生产配方
-    :return: tuple[Craft.Craft, list]: 最终预估结果, 目标路线图
+    :return: 预计结果, 预计技能列表
     """
     queue = [(craft, [])] # 待办事项
     top_route = (craft, []) # 目前最佳项 第一个坑是数据，第二个是技能历史
@@ -300,7 +304,7 @@ class Stage3:
         self.prev_skill = self.queue.pop(0)
         return self.prev_skill
 
-class RikaSolver(Solver):
+class RikaSolver(Solver): # 本算法根据Rika算法魔改,pruning(V2) by zeroneko
 
     @staticmethod
     def suitable(craft):
@@ -321,7 +325,7 @@ class RikaSolver(Solver):
         :return: 推荐技能名称
         """
         if self.stage < 0: return ''
-        if craft.craft_round == 1: return '坚信'
+        if craft.craft_round == 1: return '坚信' # Rika算法给定起手
         if craft.craft_round == 2: return '掌握'
         if craft.craft_round == 3: return '崇敬'
         while self.process_stages[self.stage].is_finished(craft, used_skill):

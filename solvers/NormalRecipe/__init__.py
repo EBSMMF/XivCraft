@@ -2,6 +2,12 @@ from .. import Solver
 from ...simulator import Craft, Manager
 
 def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
+    """
+    得到当前可使用的技能
+    :param craft: 生产配方
+    :param craft_history: 预计技能列表
+    :return: 可用技能
+    """
     available_actions = set()
     forbidden_actions = set()
     if craft.craft_round == 1:
@@ -16,7 +22,7 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
     if craft_history.count("俭约") or craft_history.count("长期俭约"):
         forbidden_actions = forbidden_actions.union({"制作", "加工", "俭约", "长期俭约", "掌握"})
     if craft.current_quality < craft.recipe.max_quality: # 加工未完成
-        if "比尔格的祝福" in craft_history: return set()
+        if craft_history.count("比尔格的祝福"): return set()
         if craft.status.name in {"高品质", "最高品质"}:
             available_actions.add("集中加工")
             forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工"})
@@ -74,6 +80,11 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
     return result_actions
 
 def process_usedtime(process: list=[]) -> int:
+    """
+    计算制作实际工次时间
+    :param process: 预计技能列表
+    :return: 实际工次时间
+    """
     used_time = 0
     for temp_skill in process:
         if temp_skill in ["俭约", "长期俭约", "崇敬", "阔步", "改革", "最终确认", "掌握"]: used_time += 2
@@ -81,6 +92,11 @@ def process_usedtime(process: list=[]) -> int:
     return used_time
 
 def Generate_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
+    """
+    计算结果
+    :param craft: 生产配方
+    :return: 预计结果, 预计技能列表
+    """
     queue = [(craft, [])] # 待办事项
     routes = (craft, []) # 目前最佳项 第一个坑是数据，第二个是技能历史
     max_usetime = 999
@@ -105,7 +121,7 @@ def Generate_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
             queue.insert(0, new_data) # 将未进行完的事项从重新添加到队列
     return routes[0], routes[1]
 
-class NormalRecipe(Solver):
+class NormalRecipe(Solver): # 这个手法成立的前提是你能搓出来100%HQ
 
     @staticmethod
     def suitable(craft: Craft.Craft):
