@@ -1,4 +1,3 @@
-
 from ctypes import *
 from typing import TYPE_CHECKING
 import re
@@ -19,9 +18,9 @@ if TYPE_CHECKING:
 registered_solvers = [
     JustDoIt.JustDoIt,
     MacroCraft2.MacroCraft,
+    NormalRecipe.NormalRecipe,
     RikaSolver.RikaSolver,
     ExpertRecipe.ExpertRecipe,
-    NormalRecipe.NormalRecipe,
 ]
 
 recipe_sheet = realm.game_data.get_sheet('Recipe')

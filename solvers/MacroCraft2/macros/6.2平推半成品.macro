@@ -1,0 +1,8 @@
+#CraftMacro:[Name]:6.2平推半成品
+#CraftMacro:[RecipeName]:泰坦蚺革,杨梅染布,仁面木木材,钛铁锭,发晶
+#CraftMacro:[UsedTime]:13
+/ac 坚信 <wait.3>
+/ac 长期俭约 <wait.2>
+/ac 崇敬 <wait.2>
+/ac 坯料制作 <wait.3>
+/ac 坯料制作 <wait.3>

@@ -164,7 +164,7 @@ def Generate_Process_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
             new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
             remaining_prog = (max_difficulty - tt_craft.current_progress) / base_base_process
             if remaining_prog <= 2: # 可以进行加工品质了
-                if remaining_prog <= 0.0: continue # 进展条满了
+                if remaining_prog == 0.0: continue # 进展条满了
                 elif remaining_prog <= 1.2: pass
                 elif remaining_prog <= 1.8: tt_craft.current_cp -= 7
                 elif remaining_prog <= 2: tt_craft.current_cp -= 12
@@ -195,12 +195,13 @@ def Generate_Quality_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
                 tt_craft.use_skill(action)
                 tt_craft.status = Manager.mStatus.DEFAULT_STATUS() # 重设球色
                 new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
-                if top_route[0].current_quality < tt_craft.current_quality: top_route = new_data # 得到当前路径品质最高的解
-                elif top_route[0].current_quality == tt_craft.current_quality:
-                    if process_usedtime(top_route[1]) > process_usedtime(new_data[1]): top_route = new_data # 如果品质相同比较轮次
-                    elif process_usedtime(top_route[1]) == process_usedtime(new_data[1]) and top_route[0].current_cp <= tt_craft.current_cp: top_route = new_data # 如果轮次相同保留高CP
+                if action == "比尔格的祝福" and tt_craft.current_quality < top_route[0].current_quality: continue # Low Quality
+                if tt_craft.current_quality > top_route[0].current_quality: top_route = new_data # 得到当前路径品质最高的解
+                else: # 品质相同
+                    if process_usedtime(new_data[1]) < process_usedtime(top_route[1]): top_route = new_data # 比较用时
+                    elif process_usedtime(new_data[1]) == process_usedtime(top_route[1]) and tt_craft.current_cp > top_route[0].current_cp: top_route = new_data # 如果工序用时保留高CP
                 if action == "比尔格的祝福": continue # 比尔格收尾了
-                if tt_craft.current_quality == craft.recipe.max_quality: continue #品质满了
+                if tt_craft.current_quality == craft.recipe.max_quality: continue # 品质满了
                 queue.insert(0, new_data) # 将未进行完的事项从重新添加到队列
     return top_route[0], top_route[1]
 
@@ -217,18 +218,14 @@ class Stage1:#作业阶段
         :param prev_skill: 上一个使用的技能名字
         :return: bool
         """
-        remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
-        if remaining_prog > 2: return False
-        elif remaining_prog >= 1.8: craft.current_cp -= 12
-        elif remaining_prog >= 1.2: craft.current_cp -= 7
-        elif remaining_prog > 0: pass
-        return True
-
-    def deal(self, craft: Craft.Craft, prev_skill: str = None) -> str:
-        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质"} or prev_skill != self.prev_skill:
+        if (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process < 2: return True
+        elif not bool(self.queue) or craft.status.name in {"高品质", "最高品质"} or prev_skill != self.prev_skill:
             routes, ans = Generate_Process_Routes(craft)
             if ans:
                 self.queue = ans
+            return False
+
+    def deal(self, craft: Craft.Craft, prev_skill: str = None) -> str:
         self.prev_skill = self.queue.pop(0)
         return self.prev_skill
 
@@ -248,13 +245,11 @@ class Stage2:#加工阶段
         """
         if craft.current_quality >= craft.recipe.max_quality: return True
         if prev_skill == "比尔格的祝福": return True
-        remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
-        if remaining_prog >= 1.8: craft.current_cp -= 12
-        elif remaining_prog >= 1.2: craft.current_cp -= 7
-        elif remaining_prog > 0: pass
-        craft.current_durability -= 4
-        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质"} or prev_skill != self.prev_skill or self.is_first:
-            if self.is_first: self.is_first = False
+        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质"} or prev_skill != self.prev_skill:
+            remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
+            if remaining_prog >= 1.8: craft.current_cp -= 12
+            elif remaining_prog >= 1.2: craft.current_cp -= 7
+            craft.current_durability -= 4
             routes, ans = Generate_Quality_Routes(craft)
             if ans:
                 self.queue = ans

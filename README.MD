@@ -16,7 +16,7 @@
 
 用宏进行搓的配方(目前*NormalRecipe*模块替代)
 
-需要手动改添加宏文件
+需要手动改添加宏文件(内置6.2/6.3半成品宏,自行修改)
 
 ## NoemalRecipe
 
@@ -26,7 +26,7 @@
 
 ## RikaSolver
 
-*90*级的星级配方
+*90*级的星级配方(35耐久存在问题,待修复)
 
 手法源自[Rika生产算法](https://github.com/RikaKagurasaka/xiv_craft_solver),并进行二次修改
 

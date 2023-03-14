@@ -55,18 +55,16 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
             if craft.effects["阔步"].param == 1: forbidden_actions.add("改革") # 防止无效buff
         manipulation = craft.effects["掌握"].param if "掌握" in craft.effects else 0
         now_dur = craft.current_durability + 5 * manipulation
-        if now_dur <= 45: forbidden_actions.add("加工") # 耐久不足
-        if now_dur <= 20: forbidden_actions.add("俭约加工") # 耐久不足
-        if now_dur <= 25: forbidden_actions = forbidden_actions.union({"加工", "集中加工", "观察"})
-        if craft.current_durability <= (5 * int(bool(manipulation)) + 35): forbidden_actions.add("坯料加工")
-        if now_dur <= 15: forbidden_actions = forbidden_actions.union({"工匠的神技", "阔步", "改革"}) # 耐久不足
+        if now_dur <= 40: forbidden_actions.add("加工") # 耐久不足
+        if now_dur <= 15: forbidden_actions.add("俭约加工") # 耐久不足
+        if now_dur <= 20: forbidden_actions = forbidden_actions.union({"加工", "集中加工", "观察"})
+        if craft.current_durability <= (5 * int(bool(manipulation)) + 30): forbidden_actions.add("坯料加工")
+        if now_dur <= 10: forbidden_actions = forbidden_actions.union({"工匠的神技", "阔步", "改革"}) # 耐久不足
     elif craft.current_quality == craft.recipe.max_quality or "坚信" in craft.effects:
         available_actions = available_actions.union({"制作", "俭约制作", "模范制作", "坯料制作", "崇敬"})
         if craft.status.name in {"高品质", "最高品质"}:
             available_actions.add("集中制作")
             forbidden_actions = forbidden_actions.union({"坯料制作", "模范制作", "制作"})
-        forbidden_actions.add("掌握")
-        forbidden_actions.add("长期俭约")
         if "崇敬" in craft.effects:
             forbidden_actions.add("崇敬")
             forbidden_actions.add("俭约")
@@ -114,7 +112,7 @@ def Generate_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
                 if tt_craft.current_quality > routes[0].current_quality: routes = new_data # 新生成的品质更好
                 else:
                     if not bool(process_usedtime(routes[1])): routes = new_data # 初始化一个routes
-                    if tt_craft.current_quality <= craft.recipe.max_quality and process_usedtime(new_data[1]) < process_usedtime(routes[1]): # 比较用时
+                    if process_usedtime(new_data[1]) < process_usedtime(routes[1]): # 比较用时
                         routes = new_data
                         if routes[0].current_quality == craft.recipe.max_quality: max_usetime = process_usedtime(new_data[1]) # 重设最佳时间
                 continue
