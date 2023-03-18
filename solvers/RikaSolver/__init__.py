@@ -197,7 +197,7 @@ def Generate_Quality_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
                 new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
                 if action == "比尔格的祝福" and tt_craft.current_quality < top_route[0].current_quality: continue # Low Quality
                 if tt_craft.current_quality > top_route[0].current_quality: top_route = new_data # 得到当前路径品质最高的解
-                else: # 品质相同
+                elif top_route[0].current_quality == tt_craft.current_quality:
                     if process_usedtime(new_data[1]) < process_usedtime(top_route[1]): top_route = new_data # 比较用时
                     elif process_usedtime(new_data[1]) == process_usedtime(top_route[1]) and tt_craft.current_cp > top_route[0].current_cp: top_route = new_data # 如果工序用时保留高CP
                 if action == "比尔格的祝福": continue # 比尔格收尾了
