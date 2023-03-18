@@ -1,4 +1,3 @@
-from FFxivPythonTrigger import plugins
 from .. import Solver
 from ...simulator import Craft, Manager
 
@@ -188,11 +187,14 @@ class Stage2:
     def __init__(self) -> None:
         self.queue = []
         self.prev_skill = None
-        self.blueprint = 0
-        for equip_id in {10337, 10338, 10339, 10340, 10341, 10342, 10343, 10344}: # 判断专家水晶
-            for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(equip_id, "equipment"):
-                if i: 
-                    self.blueprint = sum(i.count for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(28724, "backpack")) # 获取背包图纸数量
+        try:
+            from FFxivPythonTrigger import plugins
+            for equip_id in {10337, 10338, 10339, 10340, 10341, 10342, 10343, 10344}: # 判断专家水晶
+                for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(equip_id, "equipment"):
+                    if i: 
+                        self.blueprint = sum(i.count for i in plugins.XivMemory.inventory.get_item_in_containers_by_key(28724, "backpack")) # 获取背包图纸数量
+        except:
+            self.blueprint = 0
         self.blueprint_used = 0 # 目前使用过的图纸数量
 
     def is_finished(self, craft: Craft.Craft, prev_skill: str = None) -> bool:

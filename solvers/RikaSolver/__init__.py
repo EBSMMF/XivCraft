@@ -218,7 +218,7 @@ class Stage1:#作业阶段
         :param prev_skill: 上一个使用的技能名字
         :return: bool
         """
-        if (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process < 2: return True
+        if (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process <= 2: return True
         elif not bool(self.queue) or craft.status.name in {"高品质", "最高品质"} or prev_skill != self.prev_skill:
             routes, ans = Generate_Process_Routes(craft)
             if ans:
