@@ -3,6 +3,21 @@ from ...simulator import Craft, Manager
 
 default_process_round = 8
 
+durReq = 1  # 留一个作业耐久
+cpReq = 12  # 留一个作业cp
+SpecialStatus = {"高品质", "最高品质"} 
+
+def get_retention(craft: Craft.Craft):
+    """
+    生成保留数据
+    :param craft: 生产配方
+    """
+    global cpReq
+    remaining_prog = (craft.recipe.max_difficulty - craft.clone().current_progress) / craft.craft_data.base_process
+    if remaining_prog >= 1.8: cpReq = 12
+    elif remaining_prog >= 1.2: cpReq = 7
+    else: cpReq = 0
+
 def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
     """
     得到当前可使用的作业技能
@@ -38,7 +53,7 @@ def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
             forbidden_actions.add("制作") # 暂时保留, 可能存在过度剪枝的情况
     if craft_history.count("精密制作"):
         forbidden_actions = forbidden_actions.union({"坯料制作", "模范制作", "制作", "俭约制作"})
-    if craft.status.name in {"高品质", "最高品质"} or "专心致志" in craft.effects: # 考虑一下高品质情况
+    if craft.status.name in SpecialStatus or "专心致志" in craft.effects: # 考虑一下高品质情况
         if (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process >= 4:
             available_actions.add("集中制作")
             forbidden_actions.add("坯料制作")
@@ -59,33 +74,23 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     :param craft_history: 预计技能列表
     :return: 可用加工技能
     """
-    available_actions = {"加工", "俭约加工", "坯料加工"}
+    remainCp = craft.current_cp - cpReq # 可用cp
+    available_actions = set()
     forbidden_actions = set()
+    if craft.status.name in SpecialStatus:
+        available_actions.add("集中加工")
+        available_actions.add("秘诀")
+        forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工"})
+    elif '观察' in craft.effects and craft.status.name not in SpecialStatus: return {'注视加工'} # 观察-注释加工
+    if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福"): return {"比尔格的祝福"} # 第一种提前收尾
+    if remainCp < 0: return available_actions # 无CP
+    available_actions = available_actions.union({"加工", "俭约加工", "坯料加工"}) # 初始化
     inner_quiet = 0 if "内静" not in craft.effects else craft.effects["内静"].param
-    if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福"): return ({"比尔格的祝福"}) # 第一种提前收尾
-    if "改革" in craft.effects:
-        forbidden_actions.add("改革")
-        forbidden_actions.add("掌握")
-        if craft.effects["改革"].param % 3: forbidden_actions.add("加工") # [改革-加工-*-加工-加工]**禁用格式
-        if craft.effects["改革"].param % 3 == 1: forbidden_actions.add("阔步") # [改革-阔步-X-X-阔步]**禁用格式 # 暂时保留, 可能存在过度剪枝的情况
-        if craft.effects["改革"].param >= 3:
-            if craft.current_cp < 88: forbidden_actions.add("工匠的神技") # [改革-X-工匠的神技-阔步-比尔格]**CP不足
-            if craft.current_cp < 81: # [改革-X-俭约加工-阔步-比尔格]**CP不足
-                forbidden_actions.add("俭约加工")
-                forbidden_actions.add("观察")
-        if craft.effects["改革"].param < 3:
-            if craft.current_cp < 106: forbidden_actions.add("工匠的神技") # [改革-X-X-工匠的神技-阔步-改革-比尔格]**CP不足
-            if craft.current_cp < 99: # [改革-X-X-俭约加工-?-阔步-改革-比尔格]**CP不足
-                forbidden_actions.add("俭约加工")
-                forbidden_actions.add("观察")
-        if craft.effects["改革"].param // 2 and inner_quiet >= 8: available_actions.add("观察")
-    else:
-        available_actions.add("改革")
-        if inner_quiet >= 2: forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工", "工匠的神技", "俭约加工", "坯料加工", "比尔格的祝福"})
+    manipulation = 0
+    # buff相关
     if "掌握" in craft.effects:
+        manipulation = craft.effects["掌握"].param
         if craft.effects["掌握"].param < 3 and inner_quiet < 2: forbidden_actions.add("加工")
-    elif "加工" not in craft.effects and "中级加工" not in craft.effects and inner_quiet < 8: available_actions.add("掌握")
-    if "观察" in craft.effects: return ({"注视加工"})
     if "俭约" in craft.effects:
         available_actions.add("坯料加工")
         forbidden_actions.add("俭约加工")
@@ -106,28 +111,47 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
         forbidden_actions.add("阔步")
         if "改革" in craft.effects: available_actions.add("比尔格的祝福")
         if craft.effects["阔步"].param == 1: forbidden_actions.add("改革") # [阔步-X-X-改革]**格式禁用
-    if craft.status.name in {"高品质", "最高品质"}:
-        available_actions.add("集中加工")
-        available_actions.add("秘诀")
-        forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工"})
+    if "改革" in craft.effects:
+        if craft.effects["改革"].param % 3: forbidden_actions.add("加工") # [改革-加工-*-加工-加工]**禁用格式
+        if craft.effects["改革"].param % 3 == 1: forbidden_actions.add("阔步") # [改革-阔步-X-X-阔步]**禁用格式 # 暂时保留, 可能存在过度剪枝的情况
+        if craft.effects["改革"].param >= 3:
+            if remainCp < 88: forbidden_actions.add("工匠的神技") # [改革-X-工匠的神技-阔步-比尔格]**CP不足
+            if remainCp < 81: # [改革-X-俭约加工-阔步-比尔格]**CP不足
+                forbidden_actions.add("俭约加工")
+                forbidden_actions.add("观察")
+        if craft.effects["改革"].param < 3:
+            if remainCp < 106: forbidden_actions.add("工匠的神技") # [改革-X-X-工匠的神技-阔步-改革-比尔格]**CP不足
+            if remainCp < 99: # [改革-X-X-俭约加工-?-阔步-改革-比尔格]**CP不足
+                forbidden_actions.add("俭约加工")
+                forbidden_actions.add("观察")
+        if craft.effects["改革"].param // 2 and inner_quiet >= 8: available_actions.add("观察")
+    else:
+        available_actions.add("改革")
+        if inner_quiet >= 2: forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工", "工匠的神技", "俭约加工", "坯料加工", "比尔格的祝福"})
+    # 耐久相关
+    now_dur = craft.current_durability + 5 * manipulation - durReq # 可用耐久
+    if '掌握' not in craft.effects and '改革' not in craft.effects and '阔步' not in craft.effects and '加工' not in craft.effects and '中级加工' not in craft.effects:
+        # if remainCp >= 250 and craft.current_durability <= craft.recipe.max_durability - 30: available_actions.add('精修')
+        if inner_quiet < 8 and remainCp >= 280:
+            if (craft.recipe.max_durability == 70 and craft.recipe.max_durability - craft.current_durability >= 50) or craft.recipe.max_durability == 35: # 兼容35/40dur配方
+                available_actions.add("掌握")
     if craft_history.count("工匠的神技"): forbidden_actions.add("俭约加工")
-    manipulation = craft.effects["掌握"].param if "掌握" in craft.effects else 0
-    now_dur = craft.current_durability + 5 * manipulation
-    if now_dur <= 40: forbidden_actions.add("加工") # 耐久不足
-    if now_dur <= 15: forbidden_actions.add("俭约加工") # 耐久不足
+    if now_dur <= 40: forbidden_actions.add("加工")
+    if now_dur <= 15: forbidden_actions.add("俭约加工")
     if now_dur <= 20: forbidden_actions = forbidden_actions.union({"加工", "集中加工", "观察"})
-    if craft.current_durability <= (5 * int(bool(manipulation)) + 30): forbidden_actions.add("坯料加工")
-    if now_dur <= 10: forbidden_actions = forbidden_actions.union({"工匠的神技", "阔步", "改革"}) # 耐久不足
-    if craft.current_cp < 81: # [-俭约加工-阔步-比尔格]**CP不足
+    if craft.current_durability <= (5 * int(bool(manipulation)) + 25): forbidden_actions.add("坯料加工")
+    if now_dur <= 10: forbidden_actions = forbidden_actions.union({"工匠的神技", "阔步", "改革"})
+    #CP相关
+    if remainCp < 81: # [-俭约加工-阔步-比尔格]**CP不足
         forbidden_actions.add("俭约加工") 
         forbidden_actions.add("观察") 
-    if craft.current_cp < 74 and "改革" not in craft.effects and "阔步" not in craft.effects:#[阔步-改革-比尔格]**CP不够
+    if remainCp < 74 and "改革" not in craft.effects and "阔步" not in craft.effects:#[阔步-改革-比尔格]**CP不够
         forbidden_actions.add("阔步")
         forbidden_actions.add("改革")
-    if craft.current_cp < 56: # [-阔步-比尔格]**CP不足
+    if remainCp < 56: # [-阔步-比尔格]**CP不足
         forbidden_actions.add("工匠的神技")
         forbidden_actions.add("阔步")
-    if craft.current_cp < 42: forbidden_actions.add("改革") # [-改革-比尔格]**CP不足
+    if remainCp < 42: forbidden_actions.add("改革") # [-改革-比尔格]**CP不足
     result_actions = set()
     for action in available_actions:
         if action not in forbidden_actions and craft.get_skill_availability(action): result_actions.add(action)
@@ -162,13 +186,8 @@ def Generate_Process_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
             tt_craft.use_skill(action)
             tt_craft.status = Manager.mStatus.DEFAULT_STATUS() # 重设球色
             new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
-            remaining_prog = (max_difficulty - tt_craft.current_progress) / base_base_process
-            if remaining_prog <= 2: # 可以进行加工品质了
-                if remaining_prog == 0.0: continue # 进展条满了
-                elif remaining_prog <= 1.2: pass
-                elif remaining_prog <= 1.8: tt_craft.current_cp -= 7
-                elif remaining_prog <= 2: tt_craft.current_cp -= 12
-                tt_craft.current_durability -= 4 # 保留一次制作类技能的耐久
+            if (max_difficulty - tt_craft.current_progress) / base_base_process <= 2: # 可以进行加工品质了
+                get_retention(tt_craft)
                 ttt_craft, ttt_history = Generate_Quality_Routes(tt_craft) # 将当前路径进行品质计算
                 new_data = (ttt_craft, t_history + [action] + ttt_history) # 模拟使用技能然后组成一个新的事项
                 if routes[0].current_quality < ttt_craft.current_quality: routes = new_data # 得到总路径品质最高的解
@@ -187,22 +206,22 @@ def Generate_Quality_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
     """
     queue = [(craft, [])] # 待办事项
     top_route = (craft, []) # 目前最佳项 第一个坑是数据，第二个是技能历史
-    if True:
-        while queue:
-            t_craft, t_history = queue.pop(0) # 获取一个待办事项
-            for action in Get_Quality_AllowSkills(t_craft, t_history):
-                tt_craft = t_craft.clone()
-                tt_craft.use_skill(action)
-                tt_craft.status = Manager.mStatus.DEFAULT_STATUS() # 重设球色
-                new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
-                if action == "比尔格的祝福" and tt_craft.current_quality < top_route[0].current_quality: continue # Low Quality
-                if tt_craft.current_quality > top_route[0].current_quality: top_route = new_data # 得到当前路径品质最高的解
-                elif top_route[0].current_quality == tt_craft.current_quality:
-                    if process_usedtime(new_data[1]) < process_usedtime(top_route[1]): top_route = new_data # 比较用时
-                    elif process_usedtime(new_data[1]) == process_usedtime(top_route[1]) and tt_craft.current_cp > top_route[0].current_cp: top_route = new_data # 如果工序用时保留高CP
-                if action == "比尔格的祝福": continue # 比尔格收尾了
-                if tt_craft.current_quality == craft.recipe.max_quality: continue # 品质满了
-                queue.insert(0, new_data) # 将未进行完的事项从重新添加到队列
+    while queue:
+        t_craft, t_history = queue.pop(0) # 获取一个待办事项
+        for action in Get_Quality_AllowSkills(t_craft, t_history):
+            tt_craft = t_craft.clone()
+            tt_craft.use_skill(action)
+            tt_craft.status = Manager.mStatus.DEFAULT_STATUS() # 重设球色
+            if tt_craft.current_durability < durReq or tt_craft.current_cp < cpReq: continue # 不满足收尾条件
+            new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
+            if action == "比尔格的祝福" and tt_craft.current_quality < top_route[0].current_quality: continue # Low Quality
+            if tt_craft.current_quality > top_route[0].current_quality: top_route = new_data # 得到当前路径品质最高的解
+            elif top_route[0].current_quality == tt_craft.current_quality:
+                if process_usedtime(new_data[1]) < process_usedtime(top_route[1]): top_route = new_data # 比较用时
+                elif process_usedtime(new_data[1]) == process_usedtime(top_route[1]) and tt_craft.current_cp > top_route[0].current_cp: top_route = new_data # 如果工序用时保留高CP
+            if action == "比尔格的祝福": continue # 比尔格收尾了
+            if tt_craft.current_quality == craft.recipe.max_quality: continue # 品质满了
+            queue.insert(0, new_data) # 将未进行完的事项从重新添加到队列
     return top_route[0], top_route[1]
 
 class Stage1:#作业阶段
@@ -219,7 +238,7 @@ class Stage1:#作业阶段
         :return: bool
         """
         if (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process <= 2: return True
-        elif not bool(self.queue) or craft.status.name in {"高品质", "最高品质"} or prev_skill != self.prev_skill:
+        elif not bool(self.queue) or craft.status.name in SpecialStatus or prev_skill != self.prev_skill:
             routes, ans = Generate_Process_Routes(craft)
             if ans:
                 self.queue = ans
@@ -243,13 +262,9 @@ class Stage2:#加工阶段
         :param prev_skill: 上一个使用的技能名字
         :return: bool
         """
-        if craft.current_quality >= craft.recipe.max_quality: return True
-        if prev_skill == "比尔格的祝福": return True
-        if not bool(self.queue) or craft.status.name in {"高品质", "最高品质"} or prev_skill != self.prev_skill:
-            remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
-            if remaining_prog >= 1.8: craft.current_cp -= 12
-            elif remaining_prog >= 1.2: craft.current_cp -= 7
-            craft.current_durability -= 4
+        if craft.current_quality >= craft.recipe.max_quality or prev_skill == "比尔格的祝福": return True
+        if not bool(self.queue) or craft.status.name in SpecialStatus or prev_skill != self.prev_skill:
+            get_retention(craft)
             routes, ans = Generate_Quality_Routes(craft)
             if ans:
                 self.queue = ans
@@ -281,7 +296,7 @@ class Stage3:
         """
         if self.is_first:
             self.is_first = False
-            if craft.status.name in {"高品质", "最高品质"} and craft.current_cp >= 18: self.queue.append("集中制作")
+            if craft.status.name in SpecialStatus and craft.current_cp >= 18: self.queue.append("集中制作")
             else:
                 remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
                 if remaining_prog >= 1.8: self.queue.extend(["观察", "注视制作"])

@@ -99,6 +99,7 @@ class Effect(object):
     _quality_factor = 0
     _durability_factor = 0
     _cost_factor = 0
+    _special_factor = 0
 
     def __str__(self):
         return "{name}({param})".format(name=self.name, param=self.param)

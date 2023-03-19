@@ -4,6 +4,7 @@ class Observe(Effect):
     id = -99
     use_rounds = False
     name = '观察'
+    _special_factor = 1
 
 class Veneration(Effect):
     id = 2226
@@ -79,14 +80,17 @@ class Manipulation(Effect):
 class BasicTouch(Effect):
     id = -100
     name = '加工'
+    _special_factor = 1
 
 class StandardTouch(Effect):
     id = -101
     name = '中级加工'
+    _special_factor = 1
 
 class StandardTouch(Effect):
     id = -101
     name = '中级加工'
+    _special_factor = 1
 
 class HeartAndSoul(Effect):
     id = 2665
