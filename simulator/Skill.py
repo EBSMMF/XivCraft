@@ -1,5 +1,4 @@
 from .Models import Skill
-import math
 
 class BasicSynthesis(Skill):
     name = "制作"
@@ -129,7 +128,9 @@ class PreciseTouch(Skill):
     _cost = 18
 
     def after_use(self, craft):
-        if "内静" in craft.effects:
+        if "内静" not in craft.effects:
+            craft.add_effect("内静", 2)
+        else:
             craft.effects["内静"].param = min(10, craft.effects["内静"].param + 1)
 
 class MuscleMemory(Skill):
