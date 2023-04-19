@@ -94,6 +94,7 @@ class Innovation(Skill):
 
     def after_use(self, craft):
         craft.add_effect('改革', 4)
+
 class CarefulObservation(Skill):
     name = '最终确认'
     _cost = 1
@@ -217,7 +218,7 @@ class Groundwork(Skill):
 
     def progress(self, craft):
         progress = 360 if craft.player.level >= 86 else  300 
-        return progress/2 if craft.current_durability < craft.get_skill_durability(self) else progress
+        return progress / 2 if craft.current_durability < craft.get_skill_durability(self) else progress
 
 class DelicateSynthesis(Skill):
     name = '精密制作'

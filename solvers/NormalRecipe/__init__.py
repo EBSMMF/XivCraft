@@ -13,25 +13,35 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
     if craft.craft_round == 1:
         available_actions.add("坚信")
         available_actions.add("闲静")
-    if "掌握" in craft.effects: forbidden_actions.add("掌握")
-    else: available_actions.add("掌握")
-    if "俭约" in craft.effects: forbidden_actions = forbidden_actions.union({"俭约", "长期俭约", "俭约加工", "俭约制作", "掌握"})
-    else:
-        available_actions.add("俭约")
-        available_actions.add("长期俭约")
-    if craft_history.count("俭约") or craft_history.count("长期俭约"):
-        forbidden_actions = forbidden_actions.union({"制作", "加工", "俭约", "长期俭约", "掌握"})
+        return available_actions
+    inner_quiet = 0 if "内静" not in craft.effects else craft.effects["内静"].param
+    # 添加buff组
+    for buff in {"阔步", "改革", "掌握", "俭约", "崇敬"}: # 补buff
+        if buff not in craft.effects and craft.current_cp >= craft.get_skill_cost(buff) + 24:
+            if buff == "俭约" and craft.current_cp >= craft.get_skill_cost("长期俭约") + 24: available_actions.add("长期俭约")
+            if buff == "掌握" and inner_quiet > 4: continue
+            if buff == "阔步" and inner_quiet < 6: continue
+            if buff == "改革" and craft.current_quality == craft.recipe.max_quality: continue
+            if buff == "崇敬" and craft.current_quality < craft.recipe.max_quality: continue
+            available_actions.add(buff)
+    if "俭约" in craft.effects:forbidden_actions = forbidden_actions.union({"俭约", "长期俭约", "俭约加工", "俭约制作", "掌握"})
     if craft.current_quality < craft.recipe.max_quality: # 加工未完成
-        if craft_history.count("比尔格的祝福"): return set()
+        if "坚信" in craft.effects:
+            _temp_actions = "" # 当前可进行的最高作业条技能
+            for skill in "制作", "模范制作", "坯料制作":
+                if not craft.clone().use_skill(skill).is_finished():_temp_actions = skill
+            if _temp_actions == "模范制作" and "俭约" not in craft.effects: available_actions.add("俭约制作")
+            if not craft.clone().use_skill("精密制作").is_finished(): available_actions.add("精密制作")
+            if _temp_actions:
+                available_actions.add(_temp_actions)
+                return available_actions
+        if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福"): return ({"比尔格的祝福"}) # 收尾
         if craft.status.name in {"高品质", "最高品质"}:
-            available_actions.add("集中加工")
+            available_actions = available_actions.union({"集中作业", "集中加工"})
             forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工"})
-        if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福"): return ({"比尔格的祝福"}) # 第一种提前收尾
         available_actions = available_actions.union({"加工", "俭约加工", "坯料加工"})#, "精密制作"
         inner_quiet = 0 if "内静" not in craft.effects else craft.effects["内静"].param
-        if inner_quiet >= 6:
-            available_actions.add("比尔格的祝福") # 4层才可以用比尔格的祝福
-            available_actions.add("阔步") # 4层才可以用比尔格的祝福
+        if inner_quiet >= 6: available_actions.add("比尔格的祝福") # 4层才可以用比尔格的祝福
         if inner_quiet >= 10: available_actions.add("工匠的神技") # 10层才可以用工匠的神技
         if "改革" in craft.effects:
             forbidden_actions = forbidden_actions.union({"改革", "掌握", "俭约", "长期俭约"})
@@ -58,20 +68,16 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
         if now_dur <= 40: forbidden_actions.add("加工") # 耐久不足
         if now_dur <= 15: forbidden_actions.add("俭约加工") # 耐久不足
         if now_dur <= 20: forbidden_actions = forbidden_actions.union({"加工", "集中加工", "观察"})
-        if craft.current_durability <= (5 * int(bool(manipulation)) + 30): forbidden_actions.add("坯料加工")
+        if craft.current_durability <= (5 * int(bool(manipulation)) + 10 + craft.get_skill_durability("坯料加工")): forbidden_actions.add("坯料加工")
         if now_dur <= 10: forbidden_actions = forbidden_actions.union({"工匠的神技", "阔步", "改革"}) # 耐久不足
-    elif craft.current_quality == craft.recipe.max_quality or "坚信" in craft.effects:
-        available_actions = available_actions.union({"制作", "俭约制作", "模范制作", "坯料制作", "崇敬"})
-        if craft.status.name in {"高品质", "最高品质"}:
-            available_actions.add("集中制作")
-            forbidden_actions = forbidden_actions.union({"坯料制作", "模范制作", "制作"})
-        if "崇敬" in craft.effects:
-            forbidden_actions.add("崇敬")
-            forbidden_actions.add("俭约")
-        if craft_history.count("坯料制作"): forbidden_actions = forbidden_actions.union({"崇敬", "俭约", "长期俭约"})
-        if craft_history.count("模范制作"): forbidden_actions = forbidden_actions.union({"坯料制作", "崇敬", "俭约", "长期俭约", "掌握"})
-        if craft_history.count("俭约制作"): forbidden_actions = forbidden_actions.union({"坯料制作", "崇敬", "俭约", "长期俭约", "掌握"})
-        if craft_history.count("制作"): forbidden_actions = forbidden_actions.union({"坯料制作", "模范制作", "俭约制作", "崇敬", "掌握", "俭约", "长期俭约"})
+    else: # craft.current_quality == craft.recipe.max_quality
+        _temp_actions = "" # 当前可进行的最高作业条技能
+        for skill in "制作", "模范制作", "坯料制作":
+            _temp_actions = skill
+            if craft.clone().use_skill(skill).is_finished(): break
+        if craft.status.name in {"高品质", "最高品质"}: _temp_actions = "集中制作"
+        if _temp_actions == "模范制作" and "俭约" not in craft.effects: available_actions.add("俭约制作")
+        available_actions.add(_temp_actions)
     result_actions = set()
     for action in available_actions:
         if action not in forbidden_actions and craft.get_skill_availability(action): result_actions.add(action)
@@ -100,21 +106,20 @@ def Generate_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
     max_usetime = 999
     while queue:
         t_craft, t_history = queue.pop(0) # 获取一个待办事项
-        if process_usedtime(t_history) > max_usetime - 3: continue # Timeout
-        if process_usedtime(t_history) > max_usetime - 6 and t_craft.current_progress == 0: continue # Timeout
+        if process_usedtime(t_history) + 3 >= max_usetime: continue # Timeout
         for action in AllowSkills(t_craft, t_history):
             tt_craft = t_craft.clone()
             tt_craft.use_skill(action)
             tt_craft.status = Manager.mStatus.DEFAULT_STATUS() # 重设球色
-            new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
             if action == "比尔格的祝福" and tt_craft.current_quality < routes[0].current_quality: continue # Low Quality
+            new_data = (tt_craft, t_history + [action]) # 模拟使用技能然后组成一个新的事项
             if tt_craft.is_finished():
                 if tt_craft.current_quality > routes[0].current_quality: routes = new_data # 新生成的品质更好
                 else:
                     if not bool(process_usedtime(routes[1])): routes = new_data # 初始化一个routes
                     if process_usedtime(new_data[1]) < process_usedtime(routes[1]): # 比较用时
                         routes = new_data
-                        if routes[0].current_quality == craft.recipe.max_quality: max_usetime = process_usedtime(new_data[1]) # 重设最佳时间
+                        if new_data[0].current_quality == craft.recipe.max_quality: max_usetime = process_usedtime(new_data[1]) # 重设最佳时间
                 continue
             queue.insert(0, new_data) # 将未进行完的事项从重新添加到队列
     return routes[0], routes[1]
