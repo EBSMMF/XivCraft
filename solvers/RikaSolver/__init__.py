@@ -54,7 +54,7 @@ def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     if craft_history.count("精密制作"):
         forbidden_actions = forbidden_actions.union({"坯料制作", "模范制作", "制作", "俭约制作"})
     if craft.status.name in SpecialStatus or "专心致志" in craft.effects: # 考虑一下高品质情况
-        if craft.get_skill_durability("集中制作") + craft.current_progress < craft.recipe.max_difficulty:
+        if craft.get_skill_progress("集中制作") + craft.current_progress < craft.recipe.max_difficulty:
             available_actions.add("集中制作")
             forbidden_actions.add("坯料制作")
         else:
