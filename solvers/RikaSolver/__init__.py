@@ -54,9 +54,8 @@ def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
             forbidden_actions.add("制作") # 暂时保留, 可能存在过度剪枝的情况
     if craft_history.count("精密制作"):
         forbidden_actions = forbidden_actions.union({"坯料制作", "模范制作", "制作", "俭约制作"})
-
     if craft.status.name in SpecialStatus or "专心致志" in craft.effects: # 考虑一下高品质情况
-        if craft.get_skill_progress("集中制作") + craft.current_progress < craft.recipe.max_difficulty:
+        if craft.get_skill_progress("集中制作"):
             available_actions.add("集中制作")
             forbidden_actions.add("坯料制作")
         else:
@@ -66,7 +65,7 @@ def Get_Process_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
             default_process_round += 1
     result_actions = set()
     for action in available_actions:
-        if action not in forbidden_actions and craft.get_skill_availability(action): result_actions.add(action)
+        if action not in forbidden_actions and craft.get_skill_availability(action) and craft.get_skill_progress(action) + craft.current_progress < craft.recipe.max_difficulty: result_actions.add(action)
     return result_actions
 
 def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
@@ -156,7 +155,7 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     if remainCp < 42: forbidden_actions.add("改革") # [-改革-比尔格]**CP不足
     result_actions = set()
     for action in available_actions:
-        if action not in forbidden_actions and craft.get_skill_availability(action): result_actions.add(action)
+        if action not in forbidden_actions and craft.get_skill_cost(action) <= craft.current_cp and craft.get_skill_durability(action) <= craft.current_durability - 1: result_actions.add(action)
     return result_actions
 
 def process_usedtime(process: list) -> int:
