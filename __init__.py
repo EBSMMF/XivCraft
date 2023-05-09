@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 import re
 
 from FFxivPythonTrigger import *
-from FFxivPythonTrigger.decorator import event
+from FFxivPythonTrigger.decorator import event, re_event
 from FFxivPythonTrigger.hook import PluginHook
 from FFxivPythonTrigger.saint_coinach import realm
 from FFxivPythonTrigger.memory import read_int, read_memory
@@ -206,7 +206,7 @@ class XivCraft(PluginBase):
         sleep(0.5)
         self._craft_next(self.get_current_craft(), skill)
 
-    @event("network/zone/server/unk/634") # @event("network/zone/server/craft_status")
+    @event("network/zone/server/unk/439") # @event("network/zone/server/craft_status")
     def craft_next_network(self, evt: 'ServerCraftStatusEvent'): # 一个临时的网络包
         struct = OffsetStruct({
             'actor_id': (c_uint, 0),
@@ -223,7 +223,7 @@ class XivCraft(PluginBase):
         }, 160)
         event_message = struct.from_buffer(evt.raw_message).get_data(True)
         try:
-            skill = Manager.skills[get_action_name_by_id(event_message["prev_action_id"]) + ('' if event_message["prev_action_flag"] in {18,19} else ':fail')]()
+            skill = Manager.skills[get_action_name_by_id(event_message["prev_action_id"]) + ('' if event_message["prev_action_flag"] in {150,100} else ':fail')]()
         except KeyError:
             return
         sleep(0.1)
