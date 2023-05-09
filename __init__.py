@@ -219,11 +219,11 @@ class XivCraft(PluginBase):
             'current_durability': (c_int, 0x4c),
             'add_durability': (c_int, 0x50),
             'status_id': (c_ushort, 0x54),
-            'prev_action_flag': (c_ushort, 0x5c),
+            'prev_action_flag': (c_ushort, 0x60),
         }, 160)
         event_message = struct.from_buffer(evt.raw_message).get_data(True)
         try:
-            skill = Manager.skills[get_action_name_by_id(event_message["prev_action_id"]) + ('' if event_message["prev_action_flag"] in {150,100} else ':fail')]()
+            skill = Manager.skills[get_action_name_by_id(event_message["prev_action_id"]) + ('' if event_message["prev_action_flag"] in {18,19} else ':fail')]()
         except KeyError:
             return
         sleep(0.1)
