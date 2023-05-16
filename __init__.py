@@ -11,10 +11,6 @@ from FFxivPythonTrigger.memory.struct_factory import OffsetStruct, PointerStruct
 from .simulator import Models, Manager, Craft
 from .solvers import RikaSolver, JustDoIt, MacroCraft2, ExpertRecipe, NormalRecipe
 
-if TYPE_CHECKING:
-    from XivMemory.hook.chat_log import ChatLogEvent
-    # from XivNetwork.message_processors.zone_server.craft_status import ServerCraftStatusEvent 一个网络包
-
 registered_solvers = [
     JustDoIt.JustDoIt,
     MacroCraft2.MacroCraft,
@@ -96,35 +92,10 @@ class XivCraft(PluginBase):
         self.base_quality = read_memory(BaseQualityPtr, am.scan_point('base_quality_ptr', base_quality_ptr_sig))
         self.base_quality = 0 if self.base_quality.value is None else self.base_quality.value
 
-        self.chat_log_processor = ChatLogRegexProcessor()
-
-        match game_language:
-            case 'chs':
-                self.chat_log_processor.register(2114, "^(.+)开始练习制作\ue0bb(.+)。$", self.craft_start)
-                self.chat_log_processor.register(2114, "^(.+)开始制作“\ue0bb(.+)”(×\d+)?。$", self.craft_start)
-
-                # self.chat_log_processor.register(2091, "^(.+)发动了“(.+)”(。)$", self.craft_next)
-                # self.chat_log_processor.register(2114, "^(.+)发动“(.+)”  \ue06f (成功|失败)$", self.craft_next)
-
-                self.chat_log_processor.register(2114, "^(.+)练习制作\ue0bb(.+)成功了！$", self.craft_end)
-                self.chat_log_processor.register(2114, "^(.+)练习制作\ue0bb(.+)失败了……$", self.craft_end)
-                self.chat_log_processor.register(2114, "^(.+)停止了练习。$", self.craft_end)
-                self.chat_log_processor.register(2242, "^(.+)制作“\ue0bb(.+)”(×\d+)?成功！$", self.craft_end)
-                self.chat_log_processor.register(2114, "^(.+)制作失败了……$", self.craft_end)
-                self.chat_log_processor.register(2114, "^(.+)中止了制作作业。$", self.craft_end)
-
         self.channel_id = dict()
         self._recipe = None
         self.solver = None
         self.base_data = None
-        
-    @event("log_event")
-    def deal_chat_log(self, event: 'ChatLogEvent'):
-        _channel_id = self.chat_log_processor.data
-        if event.channel_id in _channel_id:
-            for regex, callback in _channel_id[event.channel_id]:
-                result = regex.search(event.message)
-                if result: self.create_mission(callback, event, result)
 
     @PluginHook.decorator(c_int64, [c_int64], True)
     def craft_start_hook(self, hook, a1):
@@ -162,82 +133,65 @@ class XivCraft(PluginBase):
             effects=effects,
         )
 
-    def craft_start(self, chat_log, regex_result):
-        self.name = plugins.XivMemory.actor_table.me.name
-        if regex_result.group(1) != self.name: return
-        recipe, player = self.base_data = self.get_base_data()
-        self.logger.info("start recipe:" + recipe.detail_str)
-        craft = Craft.Craft(recipe=recipe, player=player, current_quality=self.base_quality)
-        # process_event(CraftStart(recipe, player, self.base_quality.value))
-        for solver in registered_solvers:
-            if solver.suitable(craft):
-                self.solver = solver(craft=craft, logger=self.logger)
-                break
-        if self.solver is not None:
-            self.logger.info("solver found, starting to solve...")
-            ans = self.solver.process(craft, None)
-            if ans is not None and callback is not None:
-                self.create_mission(callback, ans, limit_sec=0)
-
     def _craft_next(self, craft: Craft.Craft, skill: Models.Skill):
-        if skill == "观察":
-            craft.add_effect("观察", 1)
-        if skill == "加工":
-            craft.add_effect("加工", 1)
-        if skill == "中级加工":
-            craft.add_effect("中级加工", 1)
-        if craft.effect_to_add != dict():
-            craft.merge_effects()
+        if skill == "观察": craft.add_effect("观察", 1)
+        if skill == "加工": craft.add_effect("加工", 1)
+        if skill == "中级加工": craft.add_effect("中级加工", 1)
+        if craft.effect_to_add != dict(): craft.merge_effects()
         # self.logger.debug(f"use skill:{skill.name}")
         # self.logger.debug(craft)
-        # process_event(CraftAction(craft, skill))
+        process_event(CraftAction(craft, skill))
         if self.solver is not None and not craft.is_finished():
             ans = self.solver.process(craft, skill)
             self.logger.debug("suggested skill '%s'" % ans)
             if ans and callback is not None:
                 self.create_mission(callback, ans, limit_sec=0)
 
-    def craft_next(self, chat_log, regex_result):
-        if regex_result.group(1) != self.name: return
-        try:
-            skill = Manager.skills[regex_result.group(2) + ('' if regex_result.group(3) != "失败" else ':fail')]()
-        except KeyError:
-            return
-        sleep(0.5)
-        self._craft_next(self.get_current_craft(), skill)
-
-    @event("network/zone/server/unk/439") # @event("network/zone/server/craft_status")
-    def craft_next_network(self, evt: 'ServerCraftStatusEvent'): # 一个临时的网络包
-        struct = OffsetStruct({
-            'actor_id': (c_uint, 0),
-            'prev_action_id': (c_uint, 0x2c),
-            'round': (c_uint, 0x34),
-            'current_progress': (c_int, 0x38),
-            'add_progress': (c_int, 0x3c),
-            'current_quality': (c_int, 0x40),
-            'add_quality': (c_int, 0x44),
-            'current_durability': (c_int, 0x4c),
-            'add_durability': (c_int, 0x50),
-            'status_id': (c_ushort, 0x54),
-            'prev_action_flag': (c_ushort, 0x60),
-        }, 160)
-        event_message = struct.from_buffer(evt.raw_message).get_data(True)
-        try:
-            skill = Manager.skills[get_action_name_by_id(event_message["prev_action_id"]) + ('' if event_message["prev_action_flag"] in {18,19} else ':fail')]()
-        except KeyError:
-            return
-        sleep(0.1)
-        self._craft_next(self.get_current_craft(
-            current_round = event_message["round"],
-            current_progress = event_message["current_progress"],
-            current_quality = event_message["current_quality"],
-            current_durability = event_message["current_durability"],
-        ), skill)
-
-    def craft_end(self, chat_log, regex_result):
-        if regex_result.group(1) != self.name: return
-        process_event(CraftEnd())
-        self.solver = None
-        self.logger.info("end craft")
-
-    # layout control
+    @event("network/zone/server/event_play", limit_sec = 0.5)
+    def craft_next_network(self, evt: 'ServerEventPlay'): # 一个临时的网络包
+        if evt.struct_message.event_id == 1 and evt.struct_message.category == 10:
+            if evt.args[0] == 2: # 开始制作
+                recipe, player = self.base_data = self.get_base_data()
+                self.logger.info("start recipe:" + recipe.detail_str)
+                craft = Craft.Craft(recipe=recipe, player=player, current_quality=self.base_quality)
+                process_event(CraftStart(recipe, player, self.base_quality))
+                for solver in registered_solvers:
+                    if solver.suitable(craft):
+                        self.solver = solver(craft=craft, logger=self.logger)
+                        break
+                sleep(0.4)
+                if self.solver is not None:
+                    self.logger.info("solver found, starting to solve...")
+                    ans = self.solver.process(craft, None)
+                    self.logger.debug("suggested skill '%s'" % ans)
+                    if ans is not None and callback is not None:
+                        self.create_mission(callback, ans, limit_sec=100000)
+            if evt.args[0] == 4: # 结束制作
+                process_event(CraftEnd())
+                self.solver = None
+                self.logger.info("end craft")
+            if evt.args[0] in {9, 10}: # 制作动作结束
+                event_message = {
+                    "prev_action_id": evt.args[4],
+                    "round": evt.args[6],
+                    "current_progress": evt.args[7],
+                    "add_progress": evt.args[8],
+                    "current_quality": evt.args[9],
+                    "add_quality": evt.args[10],
+                    "current_durability": evt.args[12],
+                    "add_durability": (evt.args[13] - (1 << 32)) if evt.args[13] else 0, # 0x100000000
+                    "status_id": evt.args[14],
+                    "prev_action_flag": evt.args[17] if evt.args[17] <= 32 else (evt.args[17] % (1 << 16)),
+                }
+                try:
+                    skill = Manager.skills[get_action_name_by_id(event_message["prev_action_id"]) + ('' if event_message["prev_action_flag"] in {18,19} else ':fail')]()
+                except KeyError:
+                    return
+                sleep(0.1)
+                self._craft_next(self.get_current_craft(
+                    current_round = event_message["round"],
+                    current_progress = event_message["current_progress"],
+                    current_quality = event_message["current_quality"],
+                    current_durability = event_message["current_durability"],
+                ), skill)
+    # # layout control
