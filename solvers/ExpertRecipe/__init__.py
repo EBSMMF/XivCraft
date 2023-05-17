@@ -56,6 +56,7 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     available_actions = available_actions.union({"加工", "俭约加工", "坯料加工"}) # 初始化
     inner_quiet = 0 if "内静" not in craft.effects else craft.effects["内静"].param
     manipulation = 0
+    now_dur = craft.current_durability + 5 * manipulation - durReq # 可用耐久
     if "掌握" in craft.effects:
         manipulation = craft.effects["掌握"].param
         if craft.effects["掌握"].param < 3 and inner_quiet < 2: forbidden_actions.add("加工")
@@ -66,7 +67,6 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
         available_actions.add("俭约加工")
         forbidden_actions.add("坯料加工")
     # 耐久相关
-    now_dur = craft.current_durability + 5 * manipulation - durReq # 可用耐久
     if '改革' not in craft.effects and '阔步' not in craft.effects and '加工' not in craft.effects and '中级加工' not in craft.effects:
         # if remainCp >= 250 and craft.current_durability <= craft.recipe.max_durability - 30: available_actions.add('精修')
         if inner_quiet < 8 and remainCp >= 230:
@@ -87,6 +87,7 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
     if "中级加工" in craft.effects:
         available_actions.add("上级加工")
         forbidden_actions = forbidden_actions.union({"加工", "俭约加工", "坯料加工", "改革"})
+        if craft.current_durability > 10: forbidden_actions.add("观察")
     if inner_quiet >= 10:
         available_actions.add("工匠的神技")
         available_actions.add("阔步")
@@ -96,7 +97,7 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
         if "改革" in craft.effects: available_actions.add("比尔格的祝福")
         if craft.effects["阔步"].param == 1: forbidden_actions.add("改革") # [阔步-X-X-改革]**格式禁用
     if "改革" in craft.effects:
-        if craft.effects["改革"].param % 3: forbidden_actions.add("加工") # [改革-加工-*-加工-加工]**禁用格式
+        if (craft.effects["改革"].param % 3 and inner_quiet < 7) or (craft.effects["改革"].param < 3 and inner_quiet >= 7): forbidden_actions.add("加工") # [改革-加工-*-加工-加工]**禁用格式
         if craft.effects["改革"].param % 3 == 1: forbidden_actions.add("阔步") # [改革-阔步-X-X-阔步]**禁用格式 # 暂时保留, 可能存在过度剪枝的情况
         if craft.effects["改革"].param >= 3:
             if remainCp < 56 + craft.get_skill_cost("工匠的神技"): forbidden_actions.add("工匠的神技") # [改革-X-工匠的神技-阔步-比尔格]**CP不足
@@ -108,10 +109,11 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
             if remainCp < 74 + craft.get_skill_cost("俭约加工"): # [改革-X-X-俭约加工-?-阔步-改革-比尔格]**CP不足
                 forbidden_actions.add("俭约加工")
                 forbidden_actions.add("观察")
-        if craft.effects["改革"].param // 2 and inner_quiet >= 8: available_actions.add("观察")
+        if inner_quiet >= (10 - (craft.effects["改革"].param // 2)): available_actions.add("观察")
+        if now_dur >= 15 and craft.effects["改革"].param > 1: forbidden_actions.add("工匠的神技")
     else:
         available_actions.add("改革")
-        if inner_quiet >= 2: forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工", "工匠的神技", "俭约加工", "坯料加工", "比尔格的祝福"})
+        if "加工" not in craft.effects and "中级加工" not in craft.effects and inner_quiet >= 2: forbidden_actions = forbidden_actions.union({"加工", "中级加工", "上级加工", "工匠的神技", "俭约加工", "坯料加工", "比尔格的祝福"})
     #CP相关
     if remainCp < 81: # [-俭约加工-阔步-比尔格]**CP不足
         forbidden_actions.add("俭约加工") 
