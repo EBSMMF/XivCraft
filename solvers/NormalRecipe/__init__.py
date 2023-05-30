@@ -24,10 +24,10 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
     if "俭约" in craft.effects:forbidden_actions = forbidden_actions.union({"俭约", "长期俭约", "俭约加工", "俭约制作", "掌握"}) # 俭约下禁用技能
     if craft.current_quality < craft.recipe.max_quality and "比尔格的祝福" not in craft_history: # 加工未完成
         for buff in {"阔步", "改革"}: # 添加内静的buff组
-            if buff == "阔步" and (inner_quiet < 6 or craft.current_quality == craft.recipe.max_quality): continue
-            if buff == "改革" and craft.current_quality == craft.recipe.max_quality: continue
-            available_actions.add(buff)
-        if not craft.clone().use_skill("精密制作").is_finished(): available_actions.add("精密制作") # 添加精密制作进工序
+            if buff not in craft.effects:
+                if buff == "阔步" and (inner_quiet < 6 or craft.current_quality == craft.recipe.max_quality): continue
+                if buff == "改革" and craft.current_quality == craft.recipe.max_quality: continue
+                available_actions.add(buff)
         if "坚信" in craft.effects:
             _temp_actions = "" # 当前可进行的最高作业条技能
             for skill in "制作", "模范制作", "坯料制作":
@@ -36,6 +36,7 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
             if _temp_actions:
                 available_actions.add(_temp_actions)
                 return available_actions
+            if not craft.clone().use_skill("精密制作").is_finished(): available_actions.add("精密制作") # 添加精密制作进工序
         available_actions = available_actions.union({"加工", "俭约加工", "坯料加工"}) # 初始化加工
         if craft.status.name in {"高品质", "最高品质"}: # 处理集中加工
             available_actions = available_actions.union({"集中作业", "集中加工"})
@@ -104,7 +105,7 @@ def Generate_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
     max_usetime = 999
     while queue:
         t_craft, t_history = queue.pop(0) # 获取一个待办事项
-        if process_usedtime(t_history) + 3 >= max_usetime: continue # Timeout
+        if process_usedtime(t_history) + 2 >= max_usetime: continue # Timeout
         for action in AllowSkills(t_craft, t_history):
             tt_craft = t_craft.clone()
             tt_craft.use_skill(action)
