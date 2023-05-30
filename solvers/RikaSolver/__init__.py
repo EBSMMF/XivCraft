@@ -128,7 +128,7 @@ def Get_Quality_AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set
             if remainCp < 99: # [改革-X-X-俭约加工-?-阔步-改革-比尔格]**CP不足
                 forbidden_actions.add("俭约加工")
                 forbidden_actions.add("观察")
-        if inner_quiet >= (10 - (craft.effects["改革"].param // 2)) : available_actions.add("观察")
+        if inner_quiet >= (10 - (craft.effects["改革"].param // 2)): available_actions.add("观察")
         if now_dur >= 15 and craft.effects["改革"].param > 1: forbidden_actions.add("工匠的神技")
     else:
         available_actions.add("改革")
@@ -226,7 +226,7 @@ def Generate_Quality_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
             queue.insert(0, new_data) # 将未进行完的事项从重新添加到队列
     return top_route[0], top_route[1]
 
-class Stage1:#作业阶段
+class Stage1: #作业阶段
 
     def __init__(self):
         self.queue = []
@@ -249,7 +249,7 @@ class Stage1:#作业阶段
         self.prev_skill = self.queue.pop(0)
         return self.prev_skill
 
-class Stage2:#加工阶段
+class Stage2: #加工阶段
 
     def __init__(self):
         self.queue = []
@@ -263,7 +263,10 @@ class Stage2:#加工阶段
         :param prev_skill: 上一个使用的技能名字
         :return: bool
         """
-        if craft.current_quality >= craft.recipe.max_quality or prev_skill == "比尔格的祝福" or craft.current_cp < 24: return True
+        if craft.current_quality >= craft.recipe.max_quality or prev_skill == "比尔格的祝福" or craft.current_cp < 24: return True # 24 = craft.get_skill_cost("比尔格的祝福")
+        if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福") and craft.get_skill_availability("比尔格的祝福"):
+            self.queue = ["比尔格的祝福"]
+            return False
         if not bool(self.queue) or craft.status.name in SpecialStatus or prev_skill != self.prev_skill:
             get_retention(craft)
             routes, ans = Generate_Quality_Routes(craft)
@@ -277,6 +280,7 @@ class Stage2:#加工阶段
         :param prev_skill: 上一个使用的技能名字
         :return: 生产技能
         """
+        if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福"): return ("比尔格的祝福") # 收尾
         self.prev_skill = self.queue.pop(0)
         return self.prev_skill
 
@@ -296,7 +300,7 @@ class Stage3:
         """
         if self.is_first:
             self.is_first = False
-            if craft.status.name in SpecialStatus and craft.current_cp >= 18: self.queue.append("集中制作")
+            if craft.status.name in SpecialStatus and craft.current_cp >= craft.get_skill_cost("集中制作"): self.queue.append("集中制作")
             else:
                 remaining_prog = (craft.recipe.max_difficulty - craft.current_progress) / craft.craft_data.base_process
                 if remaining_prog >= 1.8: self.queue.extend(["观察", "注视制作"])

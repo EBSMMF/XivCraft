@@ -147,8 +147,8 @@ class XivCraft(PluginBase):
             if ans and callback is not None:
                 self.create_mission(callback, ans, limit_sec=0)
 
-    @event("network/zone/server/event_play", limit_sec = 0.5)
-    def craft_next_network(self, evt: 'ServerEventPlay'): # 一个临时的网络包
+    @event("network/zone/server/event_play", limit_sec = 0)
+    def craft_next_network(self, evt: 'ServerEventPlay'):
         if evt.struct_message.event_id == 1 and evt.struct_message.category == 10:
             if evt.args[0] == 2: # 开始制作
                 recipe, player = self.base_data = self.get_base_data()
@@ -159,7 +159,7 @@ class XivCraft(PluginBase):
                     if solver.suitable(craft):
                         self.solver = solver(craft=craft, logger=self.logger)
                         break
-                sleep(0.4)
+                sleep(0.7)
                 if self.solver is not None:
                     self.logger.info("solver found, starting to solve...")
                     ans = self.solver.process(craft, None)
