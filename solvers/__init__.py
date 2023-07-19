@@ -12,8 +12,8 @@ class Solver(object):
         self.logger = logger
 
     @staticmethod
-    def suitable(craft)->bool:
+    def suitable(craft) -> bool:
         return False
 
-    def process(self, craft: Craft.Craft, used_skill: Models.Skill = None)->str:
+    def process(self, craft: Craft.Craft, used_skill: Models.Skill = "") -> str:
         return "观察"
