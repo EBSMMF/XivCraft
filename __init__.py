@@ -9,10 +9,9 @@ from FFxivPythonTrigger.saint_coinach import realm
 from FFxivPythonTrigger.memory import read_int, read_memory
 from FFxivPythonTrigger.memory.struct_factory import OffsetStruct, PointerStruct
 from .simulator import Models, Manager, Craft
-from .solvers import RikaSolver, JustDoIt, MacroCraft2, ExpertRecipe, NormalRecipe
+from .solvers import RikaSolver, MacroCraft2, ExpertRecipe, NormalRecipe
 
 registered_solvers = [
-    JustDoIt.JustDoIt,
     MacroCraft2.MacroCraft,
     NormalRecipe.NormalRecipe,
     RikaSolver.RikaSolver,

@@ -264,9 +264,6 @@ class Stage2: #加工阶段
         :return: bool
         """
         if craft.current_quality >= craft.recipe.max_quality or prev_skill == "比尔格的祝福" or craft.current_cp < 24: return True # 24 = craft.get_skill_cost("比尔格的祝福")
-        if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福") and craft.get_skill_availability("比尔格的祝福"):
-            self.queue = ["比尔格的祝福"]
-            return False
         if not bool(self.queue) or craft.status.name in SpecialStatus or prev_skill != self.prev_skill:
             get_retention(craft)
             routes, ans = Generate_Quality_Routes(craft)
@@ -280,7 +277,6 @@ class Stage2: #加工阶段
         :param prev_skill: 上一个使用的技能名字
         :return: 生产技能
         """
-        if (craft.recipe.max_quality - craft.current_quality) <= craft.get_skill_quality("比尔格的祝福"): return ("比尔格的祝福") # 收尾
         self.prev_skill = self.queue.pop(0)
         return self.prev_skill
 

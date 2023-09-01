@@ -1,4 +1,4 @@
-from .. import Solver
+from .. import Solver, usedtime
 from ...simulator import Craft, Manager
 
 def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
@@ -85,16 +85,6 @@ def AllowSkills(craft: Craft.Craft, craft_history: list = []) -> set:
         if action not in forbidden_actions and craft.get_skill_availability(action): result_actions.add(action)
     return result_actions
 
-def process_usedtime(process: list=[]) -> float:
-    """
-    计算制作实际工次时间
-    :param process: 预计技能列表
-    :return: 实际工次时间
-    """
-    used_time = 0
-    for temp_skill in process: used_time += 1.5 if temp_skill in ["俭约", "长期俭约", "崇敬", "阔步", "改革", "最终确认", "掌握"] else 2.5
-    return used_time
-
 def Generate_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
     """
     计算结果
@@ -106,7 +96,7 @@ def Generate_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
     max_usetime = 120 # 默认超时时间
     while queue:
         t_craft, t_history = queue.pop(0) # 获取一个待办事项
-        if process_usedtime(t_history) + 1.5 >= max_usetime: continue # Timeout
+        if usedtime(t_history) + 1.5 >= max_usetime: continue # Timeout
         for action in AllowSkills(t_craft, t_history):
             tt_craft = t_craft.clone()
             tt_craft.use_skill(action)
@@ -117,9 +107,9 @@ def Generate_Routes(craft: Craft.Craft) -> tuple[Craft.Craft, list]:
                 if tt_craft.current_quality > routes[0].current_quality: routes = new_data # 新生成的品质更好
                 else:
                     if not bool(routes[1]): routes = new_data # 初始化一个routes
-                    if process_usedtime(new_data[1]) < process_usedtime(routes[1]): # 比较用时
+                    if usedtime(new_data[1]) < usedtime(routes[1]): # 比较用时
                         routes = new_data
-                        if new_data[0].current_quality == craft.recipe.max_quality: max_usetime = process_usedtime(new_data[1]) # 重设最佳时间
+                        if new_data[0].current_quality == craft.recipe.max_quality: max_usetime = usedtime(new_data[1]) # 重设最佳时间
                 continue
             queue.insert(0, new_data) # 将未进行完的事项从重新添加到队列
     return routes[0], routes[1]
